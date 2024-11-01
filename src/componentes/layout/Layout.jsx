@@ -8,6 +8,7 @@ import AprobarFacturas from '../facturas/AprobarFacturas';
 import IngresarFacturas from '../facturas/IngresarFacturas';
 import Estadisticas from '../estadisticas/Estadisticas';
 import Parametros from '../parametros/Parametros';
+import PreviewFacturas from '../facturas/PreviewFacturas';
 
 
 function Layout({ isLoggedIn, handleLogin }) {
@@ -39,6 +40,17 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <PreviewEscalas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                {/* Ruta preview facturas: Solo accesible si el usuario está logueado */}
+                <Route
+                    path="/previewfacturas"
+                    element={
+                        isLoggedIn ? (
+                            <PreviewFacturas isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/" /> // Redirige al login si no está autenticado
                         )

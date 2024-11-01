@@ -17,7 +17,7 @@ const NavBar = () => {
 
                 {/* Botón de Reportes con submenú */}
                 <div className="botonConSubmenu">
-                    <button className="botonNavBar">Facturas</button>
+                <Link to="/previewfacturas"><button className="botonNavBar">Facturas</button></Link>
                     <div className="submenu">
                         <Link to="/facturas/aprobar" className="submenuItem">Aprobar</Link>
                         <Link to="/facturas/ingresar" className="submenuItem">Ingresar</Link>
