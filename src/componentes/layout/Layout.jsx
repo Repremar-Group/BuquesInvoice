@@ -3,6 +3,11 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import NavBar from '../navbar/Navbar';
 import LoginForm from '../login/LoginForm';
 import Home from '../home/Home';
+import PreviewEscalas from '../escalas/PreviewEscalas';
+import AprobarFacturas from '../facturas/AprobarFacturas';
+import IngresarFacturas from '../facturas/IngresarFacturas';
+import Estadisticas from '../estadisticas/Estadisticas';
+import Parametros from '../parametros/Parametros';
 
 
 function Layout({ isLoggedIn, handleLogin }) {
@@ -23,6 +28,57 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <Home isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                {/* Ruta preview escalas: Solo accesible si el usuario está logueado */}
+                <Route
+                    path="/previewescalas"
+                    element={
+                        isLoggedIn ? (
+                            <PreviewEscalas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/facturas/aprobar"
+                    element={
+                        isLoggedIn ? (
+                            <AprobarFacturas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/facturas/ingresar"
+                    element={
+                        isLoggedIn ? (
+                            <IngresarFacturas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/estadisticas"
+                    element={
+                        isLoggedIn ? (
+                            <Estadisticas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/parametros"
+                    element={
+                        isLoggedIn ? (
+                            <Parametros isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/" /> // Redirige al login si no está autenticado
                         )
