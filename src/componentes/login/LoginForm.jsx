@@ -38,7 +38,7 @@ const LoginForm = ({ onLoginSuccess }) => {
         <div className='Login'>
             <form className= 'formularioschicos' onSubmit={handleSubmit}>
                 <img src={logo} alt="Logo Cielosur" />
-
+                <div><br /></div>
                 <div className='input-box'>
                     <input 
                         type="text" 
