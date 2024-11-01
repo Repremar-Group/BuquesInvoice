@@ -2,7 +2,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 100px;
+    width: 120px;
     height: 100%;
     background-color: white;
     display: flex;
@@ -13,7 +13,7 @@
 }
 
 .logoPagina {
-    width: 80px;
+    width: 100px;
 }
 
 .logoPagina img {
