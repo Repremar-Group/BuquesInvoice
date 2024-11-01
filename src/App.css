@@ -1,0 +1,167 @@
+body{
+    display: flex;
+}
+
+.formularioschicos {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 300px;
+}
+
+.btn-estandar {
+    padding: 10px;
+    background-color: #143361;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin: 5px;
+}
+
+.btn-estandar:hover {
+    background-color: #007bff;
+}
+
+.btn-estandartablas {
+    background-color: #143361;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-estandartablas:hover {
+    background-color: #007bff;
+}
+
+
+.titulo-estandar{
+    text-align: center;
+    color:#143361;
+}
+
+/* Nuevo contenedor para los botones de acción */
+.action-buttons {
+    display: flex; /* Hace que los botones se alineen en fila */
+    gap: 2px; /* Espacio entre los botones */
+}
+
+.action-button {
+    background: none; /* Sin fondo */
+    border: none; /* Sin borde */
+    cursor: pointer; /* Cambia el cursor al pasar por encima */
+    font-size: 18px; /* Tamaño de la fuente */
+    display: inline-block; /* Ajusta el tamaño del botón al contenido */
+    padding: 2px; /* Padding mínimo para un tamaño reducido */
+    margin: 2px; /* Margen mínimo para evitar espacio adicional */
+    line-height: 1; /* Asegura que el botón no tenga altura extra */
+    height: auto; /* Permitir que el botón ajuste su altura al contenido */
+    width: fit-content; /* Ajusta el ancho al contenido */
+    min-width: 0; /* Permite que el ancho sea tan pequeño como sea necesario */
+    max-width: none; /* Sin límite superior al ancho */
+    transition: transform 0.2s ease; /* Transición suave para el hover */
+}
+
+.action-button:hover {
+    background-color: #143361;
+    transform: scale(1.1); /* Aumenta el tamaño al 110% */
+    background: none; /* Sin fondo */
+}
+
+.btn-eliminar-estandar{
+    padding: 10px;
+    margin: 5px;
+    background-color: rgb(100, 4, 4);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+   
+}
+
+.btn-eliminar-estandar:hover {
+    background-color: #ed0018;
+}
+
+/*Estilo para los campos*/
+.formulario-estandar input,
+.formulario-estandar select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    color: gray;
+    
+}
+
+.subtitulo-estandar{
+    color:#143361;
+}
+
+.estandar-container{
+    max-width: 1600px;
+    /* Limita el ancho máximo del formulario */
+    max-height: 900px;
+    /* Limita el ancho máximo del formulario */
+    width: 100%;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
+
+.primerrenglon-estandar {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+    /* Espacio entre los campos */
+
+}
+
+.primerrenglon-estandar div {
+    width: 48%;
+}
+
+/* Estilos para el contenedor del checkbox */
+.checkbox-estandar {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+}
+
+/* Estilos para la etiqueta */
+.checkbox-estandar label {
+    font-size: 16px;
+    color: gray;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+/* Estilos para el checkbox */
+.checkbox-estandar input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #143361; /* Cambia el color del checkbox en navegadores compatibles */
+}
+
+/* Efecto hover en el checkbox */
+.checkbox-estandar input[type="checkbox"]:hover {
+    box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
+}
