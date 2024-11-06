@@ -1,0 +1,88 @@
+.EmitirFacturaManual-container{
+    max-width: 1600px;
+    /* Limita el ancho máximo del formulario */
+    max-height: 900px;
+    /* Limita el ancho máximo del formulario */
+    width: 100%;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
+
+.tabla-servicios {
+    font-size: 14px; /* Tamaño de fuente más pequeño */
+    border-collapse: collapse; /* Sin espacios entre celdas */
+    table-layout: fixed; /* Establece anchos fijos para las columnas */
+    width: 100%; /* Asegura que la tabla use el ancho completo */
+    max-height: 200px;
+    overflow-y: auto; /* Permite el desplazamiento vertical */
+    display: block; /* Hace que la tabla se comporte como un bloque */
+    border-radius: 5px;
+}
+
+.tabla-servicios tbody {
+    overflow-y: auto; /* Permite el desplazamiento vertical */
+    max-height: 150px; /* Ajusta la altura para 3 filas */
+}
+
+.tabla-servicios th, .tabla-servicios td {
+    padding: 2px 5px; /* Espaciado reducido */
+    text-align: left; /* Alineación del texto a la izquierda */
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+}
+
+.tabla-servicios th {
+    background-color: #143361; /* Color de fondo para las cabeceras */
+    font-weight: bold;
+    color: white;
+    padding: 2px 5px;
+}
+
+/* Define anchos para las columnas */
+.tabla-servicios th:nth-child(1),
+.tabla-servicios td:nth-child(1) {
+    width:30%; /* Columna Codigo */
+}
+
+.tabla-servicios th:nth-child(2),
+.tabla-servicios td:nth-child(2) {
+    width: 30%; /* Columna Descripcion */
+}
+
+.tabla-servicios th:nth-child(3),
+.tabla-servicios td:nth-child(3) {
+    width: 10%; /* Columna Moneda */
+}
+
+.div-renglon-datos-facturasmanuales {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+    /* Espacio entre los campos */
+
+}
+
+.div-renglon-datos-facturasmanuales div {
+    width: 48%;
+}
+
+.factura-pre-aprobada {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+  }
+  
+  .factura-label {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Espacio entre el label y el checkbox */
+    white-space: nowrap; /* Evita que el texto del label se corte */
+    font-size: 16px; /* Ajusta el tamaño según sea necesario */
+     user-select: none;
+  }
+  
+  .factura-label input[type="checkbox"] {
+    margin-left: 10px; /* Espacio entre el texto y el checkbox */
+  }
