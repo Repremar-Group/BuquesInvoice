@@ -57,6 +57,16 @@ function Layout({ isLoggedIn, handleLogin }) {
                     }
                 />
                 <Route
+                    path="/ingresarfacturas"
+                    element={
+                        isLoggedIn ? (
+                            <IngresarFacturas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
                     path="/facturas/aprobar"
                     element={
                         isLoggedIn ? (
