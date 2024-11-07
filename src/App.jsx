@@ -3,6 +3,7 @@ import { BrowserRouter as Router, BrowserRouter } from 'react-router-dom';
 import Layout from './componentes/layout/Layout'
 import './App.css'
 
+
 function App() {
   const [count, setCount] = useState(0)
   // Recuperar el estado de autenticación desde localStorage

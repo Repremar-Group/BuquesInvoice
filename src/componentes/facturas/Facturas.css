@@ -86,3 +86,14 @@
   .factura-label input[type="checkbox"] {
     margin-left: 10px; /* Espacio entre el texto y el checkbox */
   }
+
+  .pdf-container {
+    width: 100%;         /* Ocupa todo el ancho disponible */
+    max-width: 800px;    /* Máximo ancho para pantallas grandes */
+    margin: 0 auto;      /* Centra el contenedor horizontalmente */
+    height: 600px;       /* Altura específica para el contenedor */
+    border: 1px solid #ddd;  /* Borde ligero para separación visual */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para profundidad */
+    overflow: hidden;    /* Elimina scroll en el contenedor */
+    border-radius: 8px;  /* Bordes redondeados */
+  }
