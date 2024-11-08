@@ -15,7 +15,7 @@ const General = ({ escala }) => (
 );
 
 // Componente para mostrar Proforma
-const Proforma = () =>
+const Servicios = () =>
   <div className="view-escala-proforma">
     <h3>Proforma</h3>
     <p>Contenido de la proforma...</p>
@@ -84,10 +84,10 @@ const ViewEscala = () => {
           </li>
           <li>
             <button
-              className={activeTab === 'proforma' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
-              onClick={() => setActiveTab('proforma')}
+              className={activeTab === 'servicios' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
+              onClick={() => setActiveTab('servicios')}
             >
-              Proforma
+              Servicios
             </button>
           </li>
           <li>
@@ -120,7 +120,7 @@ const ViewEscala = () => {
       {/* Contenido según la pestaña seleccionada */}
       <div className="view-escala-tab-content">
         {activeTab === 'general' && <General escala={escala} />}
-        {activeTab === 'proforma' && <Proforma />}
+        {activeTab === 'servicios' && <Servicios />}
         {activeTab === 'facturas' && <Facturas />}
         {activeTab === 'saldos' && <Saldos />}
         {activeTab === 'itinerario' && <ItinerarioPDF />}

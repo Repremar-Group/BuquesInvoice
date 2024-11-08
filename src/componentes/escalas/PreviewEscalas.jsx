@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactPaginate from 'react-paginate';
 import './previewescalas.css'; // Importa el archivo CSS
 import { Link } from "react-router-dom";
+import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
 import EscalaListaServicios from './EscalaListaServicios';
 
 const PreviewEscalas = ({ isLoggedIn }) => {
@@ -30,23 +31,22 @@ const PreviewEscalas = ({ isLoggedIn }) => {
   const [idAModificar, setIDAModificar] = useState(null); // ID
 
   const [escalas, setEscalas] = useState([]);
-  useEffect(() => {
-    const lista = [
-      { EscalaId: 1, Buque: "Evergreen", Linea: "Evergreen Line", ETA: "2024-11-01", Operador: "Carlos Pérez" },
-      { EscalaId: 2, Buque: "MSC Zoe", Linea: "Mediterranean Shipping Company", ETA: "2024-11-03", Operador: "María Gómez" },
-      { EscalaId: 3, Buque: "Maersk Triple E", Linea: "Maersk Line", ETA: "2024-11-05", Operador: "Juan Torres" },
-      { EscalaId: 4, Buque: "HMM Algeciras", Linea: "HMM", ETA: "2024-11-07", Operador: "Lucía Sánchez" },
-      { EscalaId: 5, Buque: "CMA CGM Marco Polo", Linea: "CMA CGM", ETA: "2024-11-09", Operador: "Miguel Fernández" },
-      { EscalaId: 6, Buque: "COSCO Shipping Taurus", Linea: "COSCO", ETA: "2024-11-11", Operador: "Laura Martínez" },
-      { EscalaId: 7, Buque: "OOCL Hong Kong", Linea: "OOCL", ETA: "2024-11-13", Operador: "Pedro Ruiz" },
-      { EscalaId: 8, Buque: "APL Temasek", Linea: "APL", ETA: "2024-11-15", Operador: "Ana López" },
-      { EscalaId: 9, Buque: "Yang Ming World", Linea: "Yang Ming", ETA: "2024-11-17", Operador: "Sofía Jiménez" },
-      { EscalaId: 10, Buque: "Hanjin Scarlet", Linea: "Hanjin Shipping", ETA: "2024-11-19", Operador: "José Herrera" },
-    ];
-    setEscalas(lista); // Cargar la lista en el estado
-  }, []);
-
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchEscalas = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/previewescalas'); // Solicitar datos al backend
+        setEscalas(response.data); // Guardar los datos en el estado
+        console.log(response.data);
+      } catch (err) {
+        console.error('Error al obtener los itinerarios:', err);
+        setError('Error al obtener los itinerarios'); // Manejar el error
+      }
+    };
+    fetchEscalas();
+  }, []); // El useEffect se ejecuta solo una vez cuando el componente se monta
+
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
@@ -69,7 +69,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
 
   const itemsPerPage = 8; // Cambia este número según tus necesidades
   const filteredData = escalas.filter((row) =>
-    row.Buque.toLowerCase().includes(searchTerm.toLowerCase())
+    row.buque.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const pageCount = Math.ceil(filteredData.length / itemsPerPage);
@@ -95,21 +95,22 @@ const PreviewEscalas = ({ isLoggedIn }) => {
               <th>Buque</th>
               <th>Linea</th>
               <th>ETA</th>
+              <th>Puerto</th>
               <th>Operador</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {displayedItems.map((row) => (
-              <tr key={row.EscalaId}>
-                <td title={row.EscalaId}>{row.EscalaId}</td>
-                <td title={row.Buque} >{row.Buque}</td>
-                <td title={row.Linea} >{row.Linea}</td>
-                <td title={row.ETA} >{row.ETA}</td>
-                <td title={row.Operador} >{row.Operador}</td>
+              <tr key={row.id}>
+                <td title={row.EscalaId}>{row.id}</td>
+                <td title={row.Buque} >{row.buque}</td>
+                <td title={row.Linea} >{row.linea}</td>
+                <td title={row.ETA} >{row.eta}</td>
+                <td title={row.Puerto} >{row.puerto}</td>
+                <td title={row.Operador} >{row.operador}</td>
                 <td>
                   <div className="action-buttons">
-                    <button className="action-button" title="Ver servicios">📃</button>
                     <Link to={`/ViewEscala/${row.EscalaId}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
                     <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.Buque, row.EscalaId)}>📃</button>
                   </div>
