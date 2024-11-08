@@ -4,6 +4,18 @@ import './previewescalas.css'; // Importa el archivo CSS
 import { Link } from "react-router-dom";
 
 const PreviewEscalas = ({ isLoggedIn }) => {
+  // Estado para el modal
+  const [isModalOpenVerEscala, setIsModalOpenVerEscala] = useState(false);
+  const [selectedEscala, setSelectedEscala] = useState(null);
+
+  const handleOpenModal = (escala) => {
+    setSelectedEscala(escala);
+    setIsModalOpenVerEscala(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpenVerEscala(false);
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
@@ -24,6 +36,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
     ];
     setEscalas(lista); // Cargar la lista en el estado
   }, []);
+
   const [error, setError] = useState('');
 
   const handleSearch = (event) => {
@@ -45,11 +58,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
   const pageCount = Math.ceil(filteredData.length / itemsPerPage);
   const displayedItems = filteredData.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-
-
   return (
     <div className="Contenedor_Principal">
-
       <div className='titulo-estandar'><h1>Escalas</h1></div>
 
       <div className="table-container">
@@ -69,21 +79,21 @@ const PreviewEscalas = ({ isLoggedIn }) => {
               <th>Linea</th>
               <th>ETA</th>
               <th>Operador</th>
-              <th>Servicios</th>
-
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {displayedItems.map((row) => (
-              <tr key={row.Id}>
-                <td title={row.escalaid}>{row.EscalaId}</td>
-                <td title={row.buque}>{row.Buque}</td>
-                <td title={row.linea}>{row.Linea}</td>
-                <td title={row.eta}>{row.ETA}</td>
-                <td title={row.operador}>{row.Operador}</td>
+              <tr key={row.EscalaId}>
+                <td title={row.EscalaId}>{row.EscalaId}</td>
+                <td title={row.Buque} >{row.Buque}</td>
+                <td title={row.Linea} >{row.Linea}</td>
+                <td title={row.ETA} >{row.ETA}</td>
+                <td title={row.Operador} >{row.Operador}</td>
                 <td>
                   <div className="action-buttons">
-                    <button className="action-button" onClick={() => handleAgregarListadoServicios(row.Buque, row.EscalaId)}>📃</button>
+                    <button className="action-button" title="Ver servicios">📃</button>
+                    <Link to={`/ViewEscala/${row.EscalaId}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
                   </div>
                 </td>
               </tr>
@@ -103,11 +113,10 @@ const PreviewEscalas = ({ isLoggedIn }) => {
           containerClassName={"pagination"}
           activeClassName={"active"}
         />
-
       </div>
 
     </div>
-  )
+  );
 }
 
-export default PreviewEscalas
+export default PreviewEscalas;

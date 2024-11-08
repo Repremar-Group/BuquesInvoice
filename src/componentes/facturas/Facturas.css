@@ -97,3 +97,134 @@
     overflow: hidden;    /* Elimina scroll en el contenedor */
     border-radius: 8px;  /* Bordes redondeados */
   }
+/*CSS APROBAR FACTURAS*/
+  .aprobarfacturas {
+    display: grid;
+    grid-template-columns: 0.7fr 0.4fr 1fr; /* Tres columnas de igual ancho */
+    gap: 20px; /* Espacio entre las columnas */
+    width: 90vw; /* Ancho completo de la ventana */
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .servicios, .filtros, .pdf-container {
+    border: 1px solid #ddd;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para darle profundidad */
+    border-radius: 8px; /* Bordes redondeados */
+    background-color: #fff;
+    height: calc(100vh - 80px); /* Altura ajustada a la pantalla menos el padding */
+    
+  }
+
+  /*Estilo para los campos*/
+.filtros input,
+.filtros select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    color: gray;
+    
+}
+
+.BotonesPDFAprobarFacturas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Espacio entre botones */
+    margin-top: 20px;
+}
+
+.action-buttonaprobarfac,
+.btn-nc {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Botones de navegación */
+.action-buttonaprobarfac {
+    background-color: #00a6ed;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease; /* Suaviza el cambio */
+}
+
+.action-buttonaprobarfac:hover {
+    background-color: #00a6ed; /* Opcional: Cambia a un tono más oscuro en hover */
+    transform: scale(1.1); /* Escala el botón al 110% de su tamaño original */
+}
+
+/* Botón "Ver NC" */
+.btn-nc {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-nc:hover {
+    background-color: #b02a37;
+}
+
+.subtitulo-estandaraprobar {
+    color: #143361;
+    text-align: center; /* Centra el texto horizontalmente */
+    font-size: 20px; /* Puedes ajustar el tamaño según lo que necesites */
+    margin: 20px; /* Si no deseas espacio adicional alrededor del subtítulo */
+}
+
+.TablaServiciosAprobarFacturas th,
+.TablaServiciosAprobarFacturas td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #dddddd;
+}
+
+.TablaServiciosAprobarFacturas th {
+    background-color: #143361;
+    color: white;
+}
+
+.TablaServiciosAprobarFacturas select {
+    width: 120px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    color: gray;
+}
+
+.TablaServiciosAprobarFacturas {
+    font-size: 1em;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    max-height: 500px;
+    overflow-y: auto;
+    display: block;
+    border-radius: 5px;
+    margin: 20px 0;
+}
+
+.TablaServiciosAprobarFacturas tbody {
+    overflow-y: auto;
+}
+
+/* Centrar la segunda columna (monto) tanto en th como en td */
+.TablaServiciosAprobarFacturas th:nth-child(2),
+.TablaServiciosAprobarFacturas td:nth-child(2) {
+    text-align: center; /* Centrar la segunda columna */
+}
+
+
+

@@ -9,6 +9,8 @@ import IngresarFacturas from '../facturas/IngresarFacturas';
 import Estadisticas from '../estadisticas/Estadisticas';
 import Parametros from '../parametros/Parametros';
 import PreviewFacturas from '../facturas/PreviewFacturas';
+import ViewEscala from '../escalas/ViewEscala';
+import ViewFactura from '../facturas/ViewFactura';
 
 
 function Layout({ isLoggedIn, handleLogin }) {
@@ -40,6 +42,28 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <PreviewEscalas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                {/* Ruta ViewEscala: Solo accesible si el usuario está logueado */}
+                <Route
+                    path="/ViewEscala/:id"
+                    element={
+                        isLoggedIn ? (
+                            <ViewEscala isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                {/* Ruta ViewEscala: Solo accesible si el usuario está logueado */}
+                <Route
+                    path="/ViewFactura/:id"
+                    element={
+                        isLoggedIn ? (
+                            <ViewFactura isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/" /> // Redirige al login si no está autenticado
                         )

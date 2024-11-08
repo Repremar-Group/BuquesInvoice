@@ -105,7 +105,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       <h2 className='titulo-estandar'>Ingreso de Facturas</h2>
       <form method="POST" onSubmit={handleSubmitAgregarFm} className='formulario-estandar'>
 
-        <div className='primerafilaemisiondecomprobantes'>
+        <div className='primerafilaemisiondecomprobasntes'>
           <div className='div-datos-comprobante'>
             <h3 className='subtitulo-estandar'>Datos del Comprobante</h3>
 

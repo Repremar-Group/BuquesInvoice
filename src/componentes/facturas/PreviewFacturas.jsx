@@ -55,7 +55,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
 
       <div className="table-container">
         <div className="search-bar">
-        <Link to="/ingresarfacturas"><button className="add-button">➕</button></Link>
+          <Link to="/ingresarfacturas"><button className="add-button">➕</button></Link>
           <input className='input_buscar'
             type="text"
             placeholder="Buscar"
@@ -96,6 +96,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 </td>
                 <td>
                   <div className="action-buttons">
+                    <Link to={`/ViewFactura/${row.numero}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
                     <button className="action-button" onClick={() => handleModificar(row.Numero, row.FacturaId)}>✏️</button>
                     <button className="action-button" onClick={() => handleEliminar(row.Numero, row.FacturaId)}>❌</button>
                   </div>
