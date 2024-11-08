@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import ReactPaginate from 'react-paginate';
 import './previewescalas.css'; // Importa el archivo CSS
 import { Link } from "react-router-dom";
+import EscalaListaServicios from './EscalaListaServicios';
 
 const PreviewEscalas = ({ isLoggedIn }) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Estado para almacenar la visibilidad del modal y el elemento seleccionado
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const [escalaAModificar, setEscalaAModificar] = useState(null); // Buque
+
+  const [idAModificar, setIDAModificar] = useState(null); // ID
 
   const [escalas, setEscalas] = useState([]);
   useEffect(() => {
@@ -35,7 +44,15 @@ const PreviewEscalas = ({ isLoggedIn }) => {
     setCurrentPage(event.selected);
   };
 
-  const [idAModificar, setIDAModificar] = useState(null); // ID
+  const handleAgregarServiciosEscala = (buque, EscalaId) => {
+    setIDAModificar(EscalaId);
+    setEscalaAModificar(buque);
+    setIsModalOpen(true); // Establecer modal como abierto
+  };
+
+  const closeModalAgregarServiciosEscala = () => {
+    setIsModalOpen(false);
+  };
 
   const itemsPerPage = 8; // Cambia este número según tus necesidades
   const filteredData = escalas.filter((row) =>
@@ -83,13 +100,21 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 <td title={row.operador}>{row.Operador}</td>
                 <td>
                   <div className="action-buttons">
-                    <button className="action-button" onClick={() => handleAgregarListadoServicios(row.Buque, row.EscalaId)}>📃</button>
+                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.Buque, row.EscalaId)}>📃</button>
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {/* Modal Agregar Servicios */}
+        {isModalOpen && (
+          <div className="modal-overlay active" onClick={closeModalAgregarServiciosEscala}>
+            <div className="modal">
+
+            </div>
+          </div>
+        )}
 
         <ReactPaginate
           previousLabel={"Anterior"}
