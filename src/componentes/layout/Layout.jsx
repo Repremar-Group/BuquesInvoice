@@ -11,6 +11,8 @@ import Parametros from '../parametros/Parametros';
 import PreviewFacturas from '../facturas/PreviewFacturas';
 import ViewEscala from '../escalas/ViewEscala';
 import ViewFactura from '../facturas/ViewFactura';
+import ParametrosServicios from '../parametros/ParametrosServicios';
+import ParametrosPuertos from '../parametros/ParametrosPuertos';
 
 
 function Layout({ isLoggedIn, handleLogin }) {
@@ -81,16 +83,6 @@ function Layout({ isLoggedIn, handleLogin }) {
                     }
                 />
                 <Route
-                    path="/ingresarfacturas"
-                    element={
-                        isLoggedIn ? (
-                            <IngresarFacturas isLoggedIn={isLoggedIn} />
-                        ) : (
-                            <Navigate to="/" /> // Redirige al login si no está autenticado
-                        )
-                    }
-                />
-                <Route
                     path="/facturas/aprobar"
                     element={
                         isLoggedIn ? (
@@ -125,6 +117,26 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <Parametros isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/parametros/servicios"
+                    element={
+                        isLoggedIn ? (
+                            <ParametrosServicios isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/" /> // Redirige al login si no está autenticado
+                        )
+                    }
+                />
+                <Route
+                    path="/parametros/puertos"
+                    element={
+                        isLoggedIn ? (
+                            <ParametrosPuertos isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/" /> // Redirige al login si no está autenticado
                         )
