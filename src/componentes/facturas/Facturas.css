@@ -16,7 +16,7 @@
     border-collapse: collapse; /* Sin espacios entre celdas */
     table-layout: fixed; /* Establece anchos fijos para las columnas */
     width: 100%; /* Asegura que la tabla use el ancho completo */
-    max-height: 200px;
+    max-height: 150px;
     overflow-y: auto; /* Permite el desplazamiento vertical */
     display: block; /* Hace que la tabla se comporte como un bloque */
     border-radius: 5px;
@@ -54,6 +54,24 @@
 .tabla-servicios th:nth-child(3),
 .tabla-servicios td:nth-child(3) {
     width: 10%; /* Columna Moneda */
+}
+/* Estilo de la barra de desplazamiento */
+.tabla-servicios::-webkit-scrollbar {
+    width: 8px; /* Ancho de la barra de desplazamiento */
+    background-color: #f0f0f0; /* Color de fondo de la barra */
+    border-radius: 5px;
+}
+
+/* Estilo del "thumb" de la scrollbar (la parte que se mueve) */
+.tabla-servicios::-webkit-scrollbar-thumb {
+    background-color: #143361; /* Color del thumb */
+    border-radius: 5px; /* Bordes redondeados */
+    border: 2px solid #f0f0f0; /* Espacio entre el thumb y la barra */
+}
+
+/* Estilo del thumb al pasar el mouse (hover) */
+.tabla-servicios::-webkit-scrollbar-thumb:hover {
+    background-color: #143361; /* Cambia el color del thumb al pasar el mouse */
 }
 
 .div-renglon-datos-facturasmanuales {
@@ -100,7 +118,7 @@
 /*CSS APROBAR FACTURAS*/
   .aprobarfacturas {
     display: grid;
-    grid-template-columns: 0.7fr 0.4fr 1fr; /* Tres columnas de igual ancho */
+    grid-template-columns: 0.7fr 0.4fr 1fr ; /* Tres columnas de igual ancho */
     gap: 20px; /* Espacio entre las columnas */
     width: 90vw; /* Ancho completo de la ventana */
     padding: 20px;
@@ -147,6 +165,14 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+.btn-nc:disabled {
+    background-color: #ccc; /* Cambia el color de fondo */
+    cursor: not-allowed;   /* Cambia el cursor para indicar que está deshabilitado */
+  }
+  .btn-nc:disabled:hover{
+    background-color: #ccc; /* Cambia el color de fondo */
+    cursor: not-allowed;   /* Cambia el cursor para indicar que está deshabilitado */
+  }
 
 /* Botones de navegación */
 .action-buttonaprobarfac {
@@ -228,3 +254,80 @@
 
 
 
+/* Contenedor del modal */
+.modalVerNc {
+    position: relative;
+    background: #fff; /* Fondo blanco */
+    width: 90%; /* Ajusta el tamaño según sea necesario */
+    height: 90%;
+    max-width: 900px; /* Limita el ancho máximo */
+    max-height: 90%; /* Limita la altura máxima */
+    border-radius: 8px;
+    overflow: hidden; /* Para asegurarse de que el PDF no se desborde */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: scaleUp 0.3s ease-in-out; /* Animación de entrada */
+  }
+  
+  /* Animación de entrada */
+  @keyframes scaleUp {
+    from {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  /* Animación de salida */
+@keyframes scaleDown {
+    from {
+      transform: scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+  }
+  
+  /* Modal activo (entrada) */
+  .modalVerNc.active {
+    animation: scaleUp 0.3s ease-in-out;
+  }
+  
+  /* Modal cerrado (salida) */
+  .modalVerNc.closing {
+    animation: scaleDown 0.3s ease-in-out;
+  }
+  
+  /* Ajusta el embed para que ocupe todo el modal */
+  .modalVerNc embed {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  .modalComentarios {
+    background: white;
+    padding: 20px;
+    width: 430px;
+    margin: 100px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modalComentarios h3 {
+    margin-bottom: 10px;
+  }
+  
+  textarea {
+    background-color: #f0f0f0;
+    color: BLACK;
+    width: 95%;
+    height: 150px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    resize: none;
+  }
