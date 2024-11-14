@@ -484,7 +484,7 @@ app.get('/api/obtenerestadoactualizadofacturas/:idfacturas', (req, res) => {
 
 // Endpoint para obtener los operadores
 app.get('/api/obteneroperadores', (req, res) => {
-  const query = 'SELECT id, nombre FROM operadores WHERE activo COLLATE latin1_swedish_ci = "s"'; // Solo traer operadores activos
+  const query = 'SELECT id, nombre FROM operadores WHERE operador COLLATE latin1_swedish_ci = "s" AND activo COLLATE latin1_swedish_ci = "s"'; // Solo traer operadores activos
 
   connectionitinerarios.query(query, (err, results) => {
     if (err) {
@@ -496,3 +496,40 @@ app.get('/api/obteneroperadores', (req, res) => {
     res.json(results);
   });
 });
+
+// Endpoint para obtener una escala específica por id
+app.get('/api/viewescala/:id', (req, res) => {
+  const escalaId = req.params.id; // Obtenemos el id de la URL
+ 
+  const query = `
+    SELECT
+      itinerarios.id,
+      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+      lineas.nombre AS linea,
+      buques.nombre AS buque,
+      puertos.nombre AS puerto,
+      operadores.nombre AS operador
+    FROM itinerarios
+    LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
+    LEFT JOIN buques ON itinerarios.id_buque = buques.id
+    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+    WHERE itinerarios.id = ?;
+  `;
+ 
+  // Ejecutar la consulta con el id de la escala como parámetro
+  connectionitinerarios.query(query, [escalaId], (err, results) => {
+    if (err) {
+      console.error('Error al consultar los datos de la escala:', err);
+      return res.status(500).json({ error: 'Error al consultar los datos de la escala' });
+    }
+ 
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Escala no encontrada' });
+    }
+ 
+    // Enviar los datos de la escala encontrada como respuesta
+    res.json(results[0]);
+  });
+});
+ 

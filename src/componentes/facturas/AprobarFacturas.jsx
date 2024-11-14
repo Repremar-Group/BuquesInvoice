@@ -451,7 +451,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       {/* Modal Ver Nota de Credito */}
       {isModalOpenNC && (
         <div className="modal-overlay active" onClick={closeModalVerNC}>
-          <div className="modalVerNc" style={{ display: 'flex', padding: '20px' }}>
+          <div
+            className="modalVerNc"
+            style={{ display: 'flex', padding: '20px' }}
+            onClick={(e) => e.stopPropagation()} // Previene que el clic en el contenido cierre el modal
+          >
             {/* Columna para el comentario */}
             <div style={{ flex: 1, paddingRight: '20px' }}>
               <h3>Comentarios:</h3>
