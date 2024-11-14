@@ -44,8 +44,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
     setCurrentPage(event.selected);
   };
 
-  const handleAgregarServiciosEscala = (buque, EscalaId) => {
-    setIDAModificar(EscalaId);
+  const handleAgregarServiciosEscala = (buque, id) => {
+    setIDAModificar(id);
     setEscalaAModificar(buque);
     setIsModalOpen(true); // Establecer modal como abierto
   };
@@ -100,7 +100,12 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 <td title={row.operador}>{row.Operador}</td>
                 <td>
                   <div className="action-buttons">
+<<<<<<< Updated upstream
                     <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.Buque, row.EscalaId)}>📃</button>
+=======
+                    <Link to={`/ViewEscala/${row.id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
+                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
+>>>>>>> Stashed changes
                   </div>
                 </td>
               </tr>
@@ -110,8 +115,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
         {/* Modal Agregar Servicios */}
         {isModalOpen && (
           <div className="modal-overlay active" onClick={closeModalAgregarServiciosEscala}>
-            <div className="modal">
-
+            <div className="modal-container active" onClick={(e) => e.stopPropagation()}>
+              <EscalaListaServicios id={idAModificar} closeModal={closeModalAgregarServiciosEscala} />
             </div>
           </div>
         )}
