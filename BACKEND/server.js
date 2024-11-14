@@ -7,7 +7,10 @@ const app = express();
 app.use(cors());
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
   user: 'itinerariosdba', // El usuario que creaste para la base de datos
@@ -145,6 +148,9 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
 });
 //-------------------------------------------------------------------------------------------------------------------------------------
 //Manejo de archivos para facturas
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 // Middleware para manejar el archivo
 app.use(fileUpload());
