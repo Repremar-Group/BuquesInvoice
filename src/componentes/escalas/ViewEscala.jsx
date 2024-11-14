@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './viewescala.css';
 import { Link } from "react-router-dom";
+import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
+
 
 // Componente para mostrar detalles generales de la escala
 const General = ({ escala }) => (
@@ -53,16 +55,18 @@ const ViewEscala = () => {
 
   useEffect(() => {
     // Aquí puedes hacer una solicitud para obtener los detalles de la escala
-    const escalaEncontrada = {
-      EscalaId: id,
-      Buque: "Evergreen",
-      Linea: "Evergreen Line",
-      ETA: "2024-11-01",
-      Operador: "Carlos Pérez"
+    const fetchEscalas = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/viewescala'); // Solicitar datos al backend
+        setEscala(response.data); // Guardar los datos en el estado
+        console.log(response.data);
+      } catch (err) {
+        console.error('Error al obtener los itinerarios:', err);
+        setError('Error al obtener los itinerarios'); // Manejar el error
+      }
     };
-
-    setEscala(escalaEncontrada);
-  }, [id]);
+    fetchEscalas();
+  }, []);
 
   if (!escala) {
     return <div>Cargando...</div>;
@@ -70,7 +74,7 @@ const ViewEscala = () => {
 
   return (
     <div className="view-escala-container">
-      <h3 className='titulo-estandar'>Detalles de la Escala {escala.EscalaId}</h3>
+      <h3 className='titulo-estandar'>Detalles de la Escala {escala.buque} {escala.ETA}</h3>
       {/* Navbar */}
       <nav className="view-escala-navbar">
         <ul>

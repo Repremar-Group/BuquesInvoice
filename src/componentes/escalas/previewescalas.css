@@ -310,3 +310,15 @@ th {
     background-color: #f44336;
     color: white;
 }
+
+.modal-servicios {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 90%;
+    max-height: 90%;
+    width: auto;
+    margin: auto;
+    overflow-y: auto; /* Para manejar el desbordamiento vertical */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Sombra para destacar el modal */
+  }

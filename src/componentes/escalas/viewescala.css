@@ -1,70 +1,135 @@
 .view-escala-container {
-    max-width: 1600px;
-    max-height: 900px;
-    width: 100%;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-    box-sizing: border-box;
-  }
-  
-  .view-escala-navbar {
-    display: flex;
-    justify-content: center;
-    position: sticky;
-    top: 0;
-    width: 100%;
-    z-index: 10;
-  }
-  
-  .view-escala-navbar ul {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .view-escala-navbar li {
-    margin: 0 15px;
-  }
-  
-  .view-escala-nav-button {
-    width: 100%;
-    background-color: #f9f9f9;
-    color: #143361;
-    border: none;
-    cursor: pointer;
-    padding: 15px 0;
-    margin-bottom: 10px;
-    text-align: center;
-    font-size: 16px;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-    box-sizing: border-box;
-    outline: none;
-  }
-  
-  .view-escala-nav-button.active {
-    color: #4885e2;
-    transform: scale(1.1);
-    outline: none;
-  }
-  .view-escala-nav-button.active:hover {
-    color: #4885e2;
-    transform: scale(1.1);
-    outline: none;
-  }
-  .view-escala-nav-button:hover {
-    transform: scale(1.1);
-    background-color: #f9f9f9;
-    color: #143361;
-    border: none;
-    outline: none;
-  }
-  
-  .view-escala-tab-content {
-    flex-grow: 1;
-    padding: 15px;
-    overflow-y: auto;
-  }
-  
+  max-width: 1600px;
+  max-height: 900px;
+  width: 100%;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.view-escala-navbar {
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 10;
+}
+
+.view-escala-navbar ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.view-escala-navbar li {
+  margin: 0 15px;
+}
+
+.view-escala-nav-button {
+  width: 100%;
+  background-color: #f9f9f9;
+  color: #143361;
+  border: none;
+  cursor: pointer;
+  padding: 15px 0;
+  margin-bottom: 10px;
+  text-align: center;
+  font-size: 16px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.view-escala-nav-button.active {
+  color: #4885e2;
+  transform: scale(1.1);
+  outline: none;
+}
+
+.view-escala-nav-button.active:hover {
+  color: #4885e2;
+  transform: scale(1.1);
+  outline: none;
+}
+
+.view-escala-nav-button:hover {
+  transform: scale(1.1);
+  background-color: #f9f9f9;
+  color: #143361;
+  border: none;
+  outline: none;
+}
+
+.view-escala-tab-content {
+  flex-grow: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.tabla-parametros th,
+.tabla-parametros td {
+  padding: 12px 15px;
+  /* Espaciado interno en celdas */
+  text-align: center;
+  /* Alinear texto a la izquierda */
+  border: 1px solid #dddddd;
+  /* Bordes de celdas */
+}
+
+.tabla-parametros th {
+  background-color: #143361;
+  /* Color de fondo de los encabezados */
+  color: white;
+  /* Color de texto de los encabezados */
+}
+
+.tabla-parametros {
+  font-size: 1em;
+  /* Tamaño de fuente más pequeño */
+  border-collapse: collapse;
+  /* Sin espacios entre celdas */
+  table-layout: fixed;
+  /* Establece anchos fijos para las columnas */
+  width: 100%;
+  /* Asegura que la tabla use el ancho completo */
+  max-height: 500px;
+
+  overflow-y: auto;
+  /* Permite el desplazamiento vertical */
+  display: block;
+  /* Hace que la tabla se comporte como un bloque */
+  border-radius: 5px;
+  margin: 20px 0;
+
+
+}
+
+.div-parametros {
+  display: flex;
+
+}
+
+.small-table-container {
+  flex: 1;
+}
+
+.small-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.small-table th,
+.small-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.small-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
