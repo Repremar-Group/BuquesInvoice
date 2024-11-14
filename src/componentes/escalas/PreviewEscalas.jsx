@@ -100,17 +100,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 <td title={row.operador}>{row.Operador}</td>
                 <td>
                   <div className="action-buttons">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.Buque, row.EscalaId)}>📃</button>
-=======
-                    <Link to={`/ViewEscala/${row.id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
-                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
->>>>>>> Stashed changes
-=======
-                    <Link to={`/ViewEscala/${row.id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
-                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
->>>>>>> Stashed changes
+                    <Link to={`/ViewEscala/${row.Id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
+                   <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
                   </div>
                 </td>
               </tr>
