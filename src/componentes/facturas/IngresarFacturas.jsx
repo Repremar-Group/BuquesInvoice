@@ -1,21 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import './Facturas.css'
 import axios from 'axios';
+import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
+import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
+
 const IngresarFacturas = ({ isLoggedIn }) => {
+  const navigate = useNavigate();
+
   // Estado para los campos del formulario
 
   const [nrofactura, setNroFactura] = useState('');
   const [fecha, setFecha] = useState('');
-  const [tipocomprobante, setTipoComprobante] = useState('');
-  const [escalaasociada, setEscalaAsociada] = useState('');
+  const [facturaUrl, setFacturaUrl] = useState('');
+  const [ncUrl, setNCUrl] = useState('');
+
   const [moneda, setMoneda] = useState('');
   const [monto, setMonto] = useState('');
   const [isPreAprobada, setIsPreAprobada] = useState(false);
-  const [proveedor, setProveedor] = useState('');
+
   const [selectedFileFactura, setSelectedFileFactura] = useState(null);
   const [selectedFileNC, setSelectedFileNC] = useState(null);
-  const [servicios, setServicios] = useState([]);
+  const [servicios, setServicios] = useState([]); // Estado para almacenar los servicios Asociados
+  //Estados para manejar los servicios
+  const [servicioslista, setServiciosLista] = useState([]); // Estado para almacenar los servicios
+  const [isFetchedServicios, setIsFetchedServicios] = useState(false); // Para evitar múltiples llamadas
+  const fetchServicios = async () => {
+    try {
+      console.log(escalasociadaid);
+      const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalasociadaid}`);
+      console.log(response.data);
+      setServiciosLista(response.data);
+      setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
+    } catch (error) {
+      console.error('Error al obtener vuelos:', error);
+    }
+  }
+  const handleServicioChange = (e) => {
+    setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
+  };
+
+  //Estados para la busqeuda de proveedores
+  const [searchTermProveedor, setSearchTermProveedor] = useState('');
+  const [filteredProveedores, setFilteredProveedores] = useState([]);
+  const [selectedProveedor, setSelectedProveedor] = useState(null);
+  const [isModalOpenProveedor, setIsModalOpenProveedor] = useState(false);
+  // Manejo del input de búsqueda
+  const handleInputChangeProveedor = (e) => setSearchTermProveedor(e.target.value);
+
+  // Búsqueda de proveedor al presionar Enter
+  const handleKeyPressProveedor = async (e) => {
+    if (e.key === 'Enter' && searchTermProveedor.trim()) {
+      e.preventDefault();
+      try {
+        const response = await axios.get(`http://localhost:5000/api/obtenerproveedor?search=${searchTermProveedor}`);
+        setFilteredProveedores(response.data);
+        setIsModalOpenProveedor(true); // Abre el modal con los resultados
+      } catch (error) {
+        console.error('Error al buscar proveedor:', error);
+      }
+    }
+  };
+
+
+  const handleSelectProveedor = (proveedor) => {
+    setSelectedProveedor(proveedor.nombre);
+    setSearchTermProveedor(proveedor.nombre); // Muestra el nombre seleccionado en el input
+    setIsModalOpenProveedor(false); // Cierra el modal
+  };
+
+  // Cerrar modal
+  const closeModalProveedor = () => setIsModalOpenProveedor(false);
+
+
+  // Estado para la búsqueda de escalas
+  const [searchTermEscalaAsociada, setSearchTermEscalaAsociada] = useState('');
+  const [filteredEscalas, setFilteredEscalas] = useState([]);
+  const [escalasociadaid, setEscalaAsociadaId] = useState('');
+  const [selectedEscala, setSelectedEscala] = useState(null);
+  const [isModalOpenEscala, setIsModalOpenEscala] = useState(false);
+
+  // Manejo del input de búsqueda
+  const handleInputChangeEscalaAsociada = (e) => setSearchTermEscalaAsociada(e.target.value);
+
+  // Búsqueda de escala al presionar Enter
+  const handleKeyPressEscalaAsociada = async (e) => {
+    if (e.key === 'Enter' && searchTermEscalaAsociada.trim()) {
+      e.preventDefault();
+      try {
+        const response = await axios.get(`http://localhost:5000/api/buscarescalaasociada`, {
+          params: { searchTermEscalaAsociada },
+        });
+        setFilteredEscalas(response.data);
+        setIsModalOpenEscala(true); // Abre el modal con los resultados
+        setIsFetchedServicios(false);
+      } catch (error) {
+        console.error('Error al buscar escala:', error);
+      }
+    }
+  };
+
+  const handleSelectEscala = (escala) => {
+    setSelectedEscala(escala);
+    setSearchTermEscalaAsociada(escala.buque + ", ETA: " + escala.eta); // Muestra el nombre seleccionado en el input
+    setEscalaAsociadaId(escala.id);
+    setIsModalOpenEscala(false); // Cierra el modal
+
+    // Agregar console.log para ver el id de la escala seleccionada
+    console.log('ID de la escala seleccionada:', escala.id);
+  };
+
+  // Cerrar modal
+  const closeModalEscala = () => setIsModalOpenEscala(false);
+
 
   // Estado para manejar los valores del formulario de servicio
   const [nuevoServicio, setNuevoServicio] = useState({
@@ -79,22 +176,52 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   }, []); // Se ejecuta solo una vez al montar el componente
 
   // Función para manejar el envío del formulario
-  const handleSubmitAgregarFm = (e) => {
+  const handleSubmitAgregarFactura = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el nombre en el backend
-    formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el nombre en el backend
-    axios.post('http://localhost:5000/api/Agregarfactura', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-      .then(response => {
-        console.log("Factura subida exitosamente", response.data);
-      })
-      .catch(error => {
-        console.error("Error al subir el archivo", error);
+    try {
+      // Primer paso: Subir los archivos
+      const formData = new FormData();
+      formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
+      formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
+
+      const fileResponse = await axios.post('http://localhost:5000/api/Agregarfactura', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
+
+      console.log("Factura subida exitosamente:", fileResponse.data);
+      
+      const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
+      const ncUrl = fileResponse.data.files?.fileNCUrl || '';
+
+      // Segundo paso: Guardar datos de la factura
+      const facturaData = {
+        numero: nrofactura,
+        fecha: fecha,
+        moneda: moneda,
+        monto: monto,
+        escala_asociada: escalasociadaid,
+        proveedor: selectedProveedor,
+        url_factura: facturaUrl,
+        url_notacredito: ncUrl,
+        estado: "Pendiente",
+        gia: 0, 
+        pre_aprobado: isPreAprobada ? 1 : 0,
+        servicios: servicios,
+      };
+
+      const facturaResponse = await axios.post('http://localhost:5000/api/insertardatosfactura', facturaData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      alert("Factura ingresada exitosamente");
+    } catch (error) {
+      alert("Error durante el proceso");
+
+    }
   };
 
 
@@ -103,9 +230,9 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   return (
     <div className="EmitirFacturaManual-container">
       <h2 className='titulo-estandar'>Ingreso de Facturas</h2>
-      <form method="POST" onSubmit={handleSubmitAgregarFm} className='formulario-estandar'>
+      <form method="POST" onSubmit={handleSubmitAgregarFactura} className='formulario-estandar'>
 
-        <div className='primerafilaemisiondecomprobantes'>
+        <div className='primerafilaemisiondecomprobasntes'>
           <div className='div-datos-comprobante'>
             <h3 className='subtitulo-estandar'>Datos del Comprobante</h3>
 
@@ -130,20 +257,6 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                   required
                 />
               </div>
-              <div>
-                <label htmlFor="fmtipocomprobante">Tipo de Comprobante:</label>
-                <select
-                  id="fmtipocomprobante"
-                  value={tipocomprobante}
-                  onChange={(e) => setTipoComprobante(e.target.value)}
-                  required
-                >
-                  <option value="">Selecciona una Tipo</option>
-                  <option value="fcredito">Factura de Credito</option>
-                  <option value="fcontado">Factura Contado</option>
-                  <option value="etc">Etc</option>
-                </select>
-              </div>
               <div className="factura-pre-aprobada">
                 <label htmlFor="preAprobadaCheckbox" className="factura-label">
                   Factura Pre-Aprobada
@@ -162,12 +275,14 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
             <div className='div-renglon-datos-facturasmanuales'>
               <div>
-                <label htmlFor="fmrazonsocial">Escala Asociada:</label>
+                <label htmlFor="escalaasociada">Escala Asociada:</label>
                 <input
                   type="text"
-                  id="fmrazonsocial"
-                  value={escalaasociada}
-                  onChange={(e) => setEscalaAsociada(e.target.value)}
+                  id="escalaasociada"
+                  value={searchTermEscalaAsociada}
+                  onChange={handleInputChangeEscalaAsociada}
+                  onKeyPress={handleKeyPressEscalaAsociada}
+                  placeholder="Buscar escala"
                   required
                 />
               </div>
@@ -175,8 +290,9 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                 <label htmlFor="proveedor">Proveedor:</label>
                 <input
                   type="text"
-                  value={proveedor}
-                  onChange={(e) => setProveedor(e.target.value)}
+                  value={searchTermProveedor}
+                  onChange={handleInputChangeProveedor}
+                  onKeyPress={handleKeyPressProveedor}
                   placeholder="Buscar Proveedor"
                 />
               </div>
@@ -189,9 +305,8 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                   required
                 >
                   <option value="">Selecciona una Moneda</option>
-                  <option value="dolares">Dolares</option>
-                  <option value="pesos">Pesos</option>
-                  <option value="Euros">Euros</option>
+                  <option value="USD">Dolares</option>
+                  <option value="UY">Pesos</option>
                 </select>
               </div>
 
@@ -230,52 +345,64 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
             </div>
             <h3 className='subtitulo-estandar'>Servicios Asociados</h3>
-          <div className='div-renglon-datos-facturasmanuales'>
-            <div>
-            <label >Servicio:</label>
-              <input
-                type="text"
-                name="nombre"
-                value={nuevoServicio.nombre}
-                onChange={handleInputChange}
-              />
-              <label >Estado:</label>
-              <select
-                name="estado"
-                value={nuevoServicio.estado}
-                onChange={handleInputChange}
-              >
-                <option value="Pendiente">Pendiente</option>
-                <option value="Aprobado">Aprobado</option>
-              </select>
-              
-              <button className= "btn-estandar"type="button" onClick={handleAgregarServicio}>Agregar Servicio</button>
-            </div>
-            <div>{/* Tabla de servicios */}
-              <table className='tabla-servicios'>
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {servicios.map((servicio, index) => (
-                    <tr key={index}>
-                      <td>{servicio.nombre}</td>
-                      <td>{servicio.estado}</td>
-                      <td>
-                        <button type='button' className='action-button' onClick={() => handleEliminarServicio(index)}>❌</button>
-                      </td>
+            <div className='div-renglon-datos-facturasmanuales'>
+              <div>
+                <div>
+                  <label>Servicio:</label>
+                  <select
+                    id="servicio"
+                    name="servicio"
+                    value={nuevoServicio.nombre}
+                    onChange={handleServicioChange}
+                    onClick={() => {
+                      if (!isFetchedServicios) fetchServicios();
+                    }}
+
+                  >
+                    <option value="">Selecciona un servicio</option>
+                    {servicioslista.map((servicio, index) => (
+                      <option key={index} value={servicio.nombre}>{servicio.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <label >Estado:</label>
+                <select
+                  name="estado"
+                  value={nuevoServicio.estado}
+                  onChange={handleInputChange}
+                >
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="Aprobado">Aprobado</option>
+                </select>
+
+                <button className="btn-estandar" type="button" onClick={handleAgregarServicio}>Agregar Servicio</button>
+              </div>
+              <div>{/* Tabla de servicios */}
+                <table className='tabla-servicios'>
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table></div>
-          </div>
+                  </thead>
+                  <tbody>
+                    {servicios.map((servicio, index) => (
+                      <tr key={index}>
+                        <td>{servicio.nombre}</td>
+                        <td>{servicio.estado}</td>
+                        <td>
+                          <button type='button' className='action-button' onClick={() => handleEliminarServicio(index)}>❌</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
+            </div>
           </div>
 
-          
+
         </div>
 
 
@@ -289,6 +416,20 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
 
       </form>
+
+      <ModalBusquedaEscalaAsociada
+        isOpen={isModalOpenEscala}
+        closeModal={closeModalEscala}
+        filteredEscalas={filteredEscalas}
+        handleSelectEscala={handleSelectEscala}
+      />
+
+      <ModalBusquedaProveedores
+        isOpen={isModalOpenProveedor}
+        closeModal={closeModalProveedor}
+        filteredProveedores={filteredProveedores}
+        handleSelectProveedor={handleSelectProveedor}
+      />
     </div>
   );
 }

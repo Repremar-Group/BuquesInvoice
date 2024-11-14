@@ -2,7 +2,7 @@ import React from 'react'
 
 const Estadisticas = ({isLoggedIn}) => {
   return (
-    <div>Estadisticas</div>
+    <div>En desarrollo</div>
   )
 }
 

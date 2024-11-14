@@ -155,8 +155,8 @@ body{
 
 /* Estilos para el checkbox */
 .checkbox-estandar input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
+    width: 10px;
+    height: 10px;
     cursor: pointer;
     accent-color: #143361; /* Cambia el color del checkbox en navegadores compatibles */
 }
@@ -165,3 +165,40 @@ body{
 .checkbox-estandar input[type="checkbox"]:hover {
     box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
 }
+
+input[type="checkbox"] {
+    /* Ocultar el estilo nativo */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  
+    /* Dimensiones */
+    width: 17px;
+    height: 17px;
+  
+    /* Estilo básico */
+    border: 2px solid #143361; /* Borde con el color deseado */
+    border-radius: 4px; /* Esquinas ligeramente redondeadas */
+    background-color: #fff; /* Fondo blanco */
+    cursor: pointer; /* Cambiar el cursor al pasar por encima */
+    display: inline-block; /* Asegura el control de alineación */
+    transition: all 0.3s ease; /* Animación suave */
+  }
+  
+  input[type="checkbox"]:checked {
+    /* Estilo cuando está marcado */
+    background-color: #143361; /* Fondo con el color deseado */
+    border-color: #143361; /* Mantén el borde del mismo color */
+  }
+  
+  input[type="checkbox"]:checked::after {
+    /* Icono de check */
+    content: '✔'; /* Carácter de check */
+    color: white; /* Color del check */
+    font-size: 14px; /* Tamaño del texto */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    top: -3px; /* Ajuste fino para centrar */
+  }
