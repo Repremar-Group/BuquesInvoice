@@ -269,3 +269,82 @@ th {
     z-index: 999;
     /* Detrás del modal, pero delante del resto */
 }
+
+/* Estilos para el modal de eliminación de factura */
+.modal-overlayeliminarfactura {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-overlayeliminarfactura.active {
+    display: flex;
+  }
+  
+  .modal-containereliminarfactura {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .modal-containereliminarfactura h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .modal-containereliminarfactura p {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .modal-containereliminarfactura strong {
+    font-weight: bold;
+  }
+  
+  .modal-buttonseliminarfactura {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+  }
+  
+  .modal-buttonseliminarfactura button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    width: 45%;
+  }
+  
+  .modal-buttonseliminarfactura button:hover {
+    background-color: #0056b3;
+  }
+  
+  .modal-buttonseliminarfactura button:active {
+    background-color: #003d80;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2) {
+    background-color: #dc3545;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2):hover {
+    background-color: #c82333;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2):active {
+    background-color: #9a2d2f;
+  }

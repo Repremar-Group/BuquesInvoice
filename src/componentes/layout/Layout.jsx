@@ -154,6 +154,7 @@ function Layout({ isLoggedIn, handleLogin }) {
                         )
                     }
                 />
+                
 
                 {/* Ruta por defecto: Redirige a un componente que muestra un mensaje de error */}
                 <Route path="*" element={<RutaNoEncontrada />} />

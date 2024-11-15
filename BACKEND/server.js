@@ -500,7 +500,7 @@ app.get('/api/obteneroperadores', (req, res) => {
 // Endpoint para obtener una escala específica por id
 app.get('/api/viewescala/:id', (req, res) => {
   const escalaId = req.params.id; // Obtenemos el id de la URL
- 
+
   const query = `
     SELECT
       itinerarios.id,
@@ -516,20 +516,172 @@ app.get('/api/viewescala/:id', (req, res) => {
     LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
     WHERE itinerarios.id = ?;
   `;
- 
+
   // Ejecutar la consulta con el id de la escala como parámetro
   connectionitinerarios.query(query, [escalaId], (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de la escala:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de la escala' });
     }
- 
+
     if (results.length === 0) {
       return res.status(404).json({ error: 'Escala no encontrada' });
     }
- 
+
     // Enviar los datos de la escala encontrada como respuesta
     res.json(results[0]);
   });
 });
- 
+
+//Endpoint para obtener una sola factura.
+// Endpoint para obtener los detalles de una factura
+app.get('/api/obtenerfactura/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = `
+    SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, 
+           url_factura, url_notacredito, estado, gia, pre_aprobado, comentarios
+    FROM facturas
+    WHERE idfacturas = ?
+  `;
+
+  connectionbuquesinvoice.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Error al obtener los detalles de la factura:', err);
+      return res.status(500).json({ error: 'Error al obtener los detalles de la factura' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+
+    res.json({ factura: results[0] });
+  });
+});
+
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarfactura/:id', (req, res) => {
+  const { id } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM facturas WHERE idfacturas = ?';
+
+  connectionbuquesinvoice.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura' });
+    }
+
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
+});
+//Endpoint para obtener factura
+app.get('/api/obtenerfactura/:id', (req, res) => {
+  const { id } = req.params;
+  const query = 'SELECT * FROM facturas WHERE id = ?';
+  connectionbuquesinvoice.query(query, [id], (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al obtener la factura' });
+    }
+    if (results.length > 0) {
+      res.json(results[0]);  // Envía la factura encontrada
+    } else {
+      res.status(404).json({ error: 'Factura no encontrada' });
+    }
+  });
+});
+
+// Endpoint para modificar datos de la factura
+app.put('/api/modificarfactura', (req, res) => {
+  console.log("Datos recibidos para modificar:", req.body); // Verificar los datos que llegan
+
+  const { idfactura, numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado, servicios } = req.body;
+
+  // Verificar si el ID de la factura está presente
+  if (!idfactura) {
+    return res.status(400).send("Error: El ID de la factura es requerido.");
+  }
+
+  // Verificar si se proporcionan servicios
+  if (!servicios || !Array.isArray(servicios)) {
+    return res.status(400).send("Error: Se deben proporcionar servicios asociados a la factura.");
+  }
+
+  // Iniciar la transacción
+  connectionbuquesinvoice.beginTransaction((err) => {
+    if (err) {
+      console.error("Error al comenzar la transacción:", err);
+      return res.status(500).send("Error al comenzar la transacción");
+    }
+
+    // Actualizar la factura
+    const sqlFactura = `
+      UPDATE facturas
+      SET numero = ?, fecha = ?, moneda = ?, monto = ?, escala_asociada = ?, proveedor = ?, url_factura = ?, url_notacredito = ?, estado = ?, gia = ?, pre_aprobado = ?
+      WHERE idfacturas = ?
+    `;
+    const valuesFactura = [numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado, idfactura];
+
+    connectionbuquesinvoice.query(sqlFactura, valuesFactura, (err) => {
+      if (err) {
+        return connectionbuquesinvoice.rollback(() => {
+          console.error("Error al actualizar la factura:", err);
+          return res.status(500).send("Error al actualizar la factura");
+        });
+      }
+
+      // Eliminar los servicios existentes para esta factura
+      const sqlDeleteServicios = `
+        DELETE FROM serviciosfacturas
+        WHERE idfactura = ?
+      `;
+
+      connectionbuquesinvoice.query(sqlDeleteServicios, [idfactura], (err) => {
+        if (err) {
+          return connectionbuquesinvoice.rollback(() => {
+            console.error("Error al eliminar los servicios existentes:", err);
+            return res.status(500).send("Error al eliminar los servicios existentes");
+          });
+        }
+
+        // Insertar los nuevos servicios asociados
+        const sqlInsertServicios = `
+          INSERT INTO serviciosfacturas (nombre, estado, idfactura)
+          VALUES ?
+        `;
+        const serviciosValues = servicios.map(servicio => [
+          servicio.servicio,
+          servicio.estado,
+          idfactura
+        ]);
+
+        connectionbuquesinvoice.query(sqlInsertServicios, [serviciosValues], (err) => {
+          if (err) {
+            return connectionbuquesinvoice.rollback(() => {
+              console.error("Error al insertar los nuevos servicios:", err);
+              return res.status(500).send("Error al insertar los nuevos servicios");
+            });
+          }
+
+          // Commit de la transacción si todo fue exitoso
+          return connectionbuquesinvoice.commit((err) => {
+            if (err) {
+              return connectionbuquesinvoice.rollback(() => {
+                console.error("Error al hacer commit:", err);
+                return res.status(500).send("Error al hacer commit");
+              });
+            }
+
+            return res.json({ message: "Factura y servicios modificados exitosamente" });
+          });
+        });
+      });
+    });
+  });
+});

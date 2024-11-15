@@ -1,0 +1,78 @@
+.view-escala-general {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Asegúrate de que ocupe todo el espacio disponible */
+    box-sizing: border-box;
+}
+
+.contenedor-columns {
+    display: grid;
+    grid-template-columns: 1fr 4fr; /* Dos columnas con la proporción indicada */
+    gap: 20px; /* Espacio entre columnas */
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;  /* Centra el contenido horizontalmente */
+    align-items: center;      /* Centra el contenido verticalmente */
+}
+
+.datosfactura,
+.pdf-containerviewfactura {
+    padding: 20px;
+    box-sizing: border-box; /* Asegura que el padding y border estén dentro del tamaño */
+    height: 655px; /* Fija la altura si es necesario */
+
+}
+
+.datosescala{
+    padding: 20px;
+    box-sizing: border-box; /* Asegura que el padding y border estén dentro del tamaño */
+    
+}
+
+
+.subtitulo-estandaraprobar {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.datosfactura div,
+.pdf-containerviewfactura{
+    margin-bottom: 15px;
+}
+
+.datosfactura, .datosescala label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.datosfactura input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    color: gray;
+}
+.datosescala input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    color: gray;
+}
+
+.view-factura-container {
+    max-width: 1600px;
+    max-height: 900px;
+    width: 100%;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
