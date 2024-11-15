@@ -30,12 +30,22 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       console.log(escalasociadaid);
       const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalasociadaid}`);
       console.log(response.data);
-      setServiciosLista(response.data);
-      setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
+      if (response.data.length === 0) {
+        console.log("La lista de servicios está vacía.");
+        setIsFetchedServicios(false);
+      } else {
+        console.log("La lista de servicios contiene datos.");
+        setServiciosLista(response.data);
+        setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
+      }
     } catch (error) {
       console.error('Error al obtener vuelos:', error);
     }
-  }
+
+
+  };
+
+
   const handleServicioChange = (e) => {
     setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
   };
@@ -108,6 +118,49 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
     // Agregar console.log para ver el id de la escala seleccionada
     console.log('ID de la escala seleccionada:', escala.id);
+    if (!isFetchedServicios) {
+
+      const fetchServiciosPuerto = async () => {
+        try {
+          console.log('Segundo log', escala.id_puerto); // Verificar el puerto
+          const response = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${escala.id_puerto}`);
+
+          // Transformar el listado para solo tener 'nombre' y 'idescala'
+          const serviciosTransformados = response.data.map(servicio => ({
+            nombre: servicio.nombre,
+            idescala: escala.id  // idescala es igual a escala.id
+          }));
+          console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
+          console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
+
+          console.log('Datos enviados al servidor:', serviciosTransformados);
+          // Cambiar el formato enviado al servidor
+          const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+            servicios: serviciosTransformados
+          })
+
+        } catch (error) {
+          console.error('Error al obtener servicios puertos:', error);
+        }
+      };
+      fetchServiciosPuerto();
+      /*
+      const insertServiciosPuerto = async () => {
+        try {
+          console.log('Datos enviados al servidor:', serviciosTransformados);
+      
+          // Cambiar el formato enviado al servidor
+          const response = await axios.post('http://localhost:5000/api/insertserviciospuertos', { 
+            servicios: serviciosTransformados
+          });
+      
+          console.log('Respuesta del servidor:', response.data);
+        } catch (error) {
+          console.error('Error al agregar servicios puertos:', error);
+        }
+      };
+      insertServiciosPuerto();*/
+    };
   };
 
   // Cerrar modal
@@ -119,6 +172,9 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     nombre: '',
     estado: 'Pendiente', // Estado inicial
   });
+
+  const [serviciospuertos, setServiciosPuertos] = useState([]);
+
   //---------------------------------------------------------------------------------------------------------------------------------
   // Función para manejar el cambio en los inputs
   const handleInputChange = (e) => {
@@ -169,6 +225,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
   const handleCheckboxChangePreAprobada = () => {
     setIsPreAprobada(!isPreAprobada);
+    console.log(isPreAprobada);
   };
   useEffect(() => {
     const icfechaactual = new Date().toISOString().split("T")[0]; // Obtiene la fecha actual en formato YYYY-MM-DD
@@ -191,7 +248,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       });
 
       console.log("Factura subida exitosamente:", fileResponse.data);
-      
+
       const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
       const ncUrl = fileResponse.data.files?.fileNCUrl || '';
 
@@ -205,12 +262,31 @@ const IngresarFacturas = ({ isLoggedIn }) => {
         proveedor: selectedProveedor,
         url_factura: facturaUrl,
         url_notacredito: ncUrl,
-        estado: "Pendiente",
-        gia: 0, 
-        pre_aprobado: isPreAprobada ? 1 : 0,
+        gia: 0,
         servicios: servicios,
       };
 
+      if (isPreAprobada) {
+        // Si está pre-aprobada, agregamos "Aprobado" y "pre_aprobado: 1"
+        facturaData.estado = "Aprobado";
+        facturaData.pre_aprobado = 1;
+        //aca recorro servicios y les cambio el estado a aprobado
+
+
+        // Recorrer los servicios y cambiar su estado a "Aprobado"
+        const serviciosAprobados = servicios.map(servicio => ({
+          ...servicio,
+          estado: 'Aprobado'  // Cambiar el estado a "Aprobado"
+        }));
+
+        // Actualizar el array de servicios con los nuevos estados
+        facturaData.servicios = serviciosAprobados;
+      } else {
+        // Si no está pre-aprobada, agregamos "Pendiente" y "pre_aprobado: 0"
+        facturaData.estado = "Pendiente";
+        facturaData.pre_aprobado = 0;
+      };
+      console.log(facturaData);
       const facturaResponse = await axios.post('http://localhost:5000/api/insertardatosfactura', facturaData, {
         headers: {
           'Content-Type': 'application/json',
@@ -371,6 +447,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                   name="estado"
                   value={nuevoServicio.estado}
                   onChange={handleInputChange}
+                  disabled //solo lectura
                 >
                   <option value="Pendiente">Pendiente</option>
                   <option value="Aprobado">Aprobado</option>

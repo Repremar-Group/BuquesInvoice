@@ -3,70 +3,112 @@ import { useParams } from 'react-router-dom';
 import './viewescala.css';
 import { Link } from "react-router-dom";
 import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
+import './previewescalas.css';
 
 
 // Componente para mostrar detalles generales de la escala
 const General = ({ escala }) => (
   <div className="view-escala-general">
-    <p><strong>Buque:</strong> {escala.Buque}</p>
-    <p><strong>Linea:</strong> {escala.Linea}</p>
-    <p><strong>ETA:</strong> {escala.ETA}</p>
-    <p><strong>Operador:</strong> {escala.Operador}</p>
+    <p><strong>Buque:</strong> {escala.buque}</p>
+    <p><strong>Linea:</strong> {escala.linea}</p>
+    <p><strong>ETA:</strong> {escala.eta}</p>
+    <p><strong>Operador:</strong> {escala.operador}</p>
     <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
   </div>
 );
 
-// Componente para mostrar Proforma
-const Servicios = () =>
-  <div className="view-escala-proforma">
-    <h3>Proforma</h3>
-    <p>Contenido de la proforma...</p>
-    <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
-  </div>;
+
 
 // Componente para mostrar Facturas
-const Facturas = () =>
-  <div className="view-escala-facturas">
-    <h3>Facturas</h3>
-    <p>Contenido de las facturas...</p>
-    <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
-  </div>;
+const Facturas = ({ facturas, searchTerm, handleSearch }) => {
+  // Filtrar las facturas que coincidan con el searchTerm
+  const filteredFacturas = facturas.filter((factura) => {
+    return (
+      factura.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      factura.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
-// Componente para mostrar Saldos
-const Saldos = () =>
-  <div className="view-escala-saldos">
-    <h3>Saldos</h3>
-    <p>Contenido de los saldos...</p>
-    <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
-  </div>;
+  return (
+    <div className="view-escala-facturas">
+      <h3>Facturas</h3>
 
-// Componente para mostrar Itinerario PDF
-const ItinerarioPDF = () =>
-  <div className="view-escala-itinerario">
-    <h3>Itinerario PDF</h3>
-    <p>Contenido del itinerario PDF...</p>
-    <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
-  </div>;
+      <div className="search-bar">
+        <input 
+          className='input_buscar'
+          type="text"
+          placeholder="Buscar"
+          value={searchTerm}  // Usa el searchTerm pasado como prop
+          onChange={handleSearch}  // Usa el handleSearch pasado como prop
+        />
+      </div>
+
+      {filteredFacturas && filteredFacturas.length > 0 ? (
+        <table className="tabla-clientes">
+          <thead>
+            <tr>
+              <th>Numero</th>
+              <th>Fecha</th>
+              <th>Monto</th>
+              <th>Proveedor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredFacturas.map((factura) => (
+              <tr key={factura.idfacturas}>
+                <td>{factura.numero}</td>
+                <td>{factura.fecha}</td>
+                <td>{factura.moneda} {factura.monto}</td>
+                <td>{factura.proveedor}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>No se encontraron facturas para esta escala.</p>
+      )}
+      <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
+    </div>
+  );
+};
 
 const ViewEscala = () => {
-  const { id } = useParams(); // Obtener el ID de la URL
+  const { id } = useParams();
   const [escala, setEscala] = useState(null);
-  const [activeTab, setActiveTab] = useState('general'); // Estado para la pestaña activa
+  const [activeTab, setActiveTab] = useState('general');
+  const [error, setError] = useState(null);
+  const [facturas, setFacturas] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
 
   useEffect(() => {
-    // Aquí puedes hacer una solicitud para obtener los detalles de la escala
-    const fetchEscalas = async () => {
+    const fetchEscala = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/viewescala'); // Solicitar datos al backend
-        setEscala(response.data); // Guardar los datos en el estado
-        console.log(response.data);
+        const response = await axios.get(`http://localhost:5000/api/viewescala/${id}`);
+        setEscala(response.data);
       } catch (err) {
-        console.error('Error al obtener los itinerarios:', err);
-        setError('Error al obtener los itinerarios'); // Manejar el error
+        console.error('Error al obtener la escala:', err);
+        setError('Error al obtener los detalles de la escala');
       }
     };
-    fetchEscalas();
-  }, []);
+
+    const fetchFacturas = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/viewescalafacturas/${id}`);
+        setFacturas(response.data);
+      } catch (err) {
+        console.error('Error al obtener las facturas:', err);
+        setError('Error al obtener las facturas');
+      }
+    };
+
+    fetchEscala();
+    fetchFacturas();
+
+  }, [id]);
 
   if (!escala) {
     return <div>Cargando...</div>;
@@ -74,7 +116,7 @@ const ViewEscala = () => {
 
   return (
     <div className="view-escala-container">
-      <h3 className='titulo-estandar'>Detalles de la Escala {escala.buque} {escala.ETA}</h3>
+      <h3 className="titulo-estandar">Detalles de la Escala {escala.buque} {escala.eta}</h3>
       {/* Navbar */}
       <nav className="view-escala-navbar">
         <ul>
@@ -88,34 +130,10 @@ const ViewEscala = () => {
           </li>
           <li>
             <button
-              className={activeTab === 'servicios' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
-              onClick={() => setActiveTab('servicios')}
-            >
-              Servicios
-            </button>
-          </li>
-          <li>
-            <button
               className={activeTab === 'facturas' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
               onClick={() => setActiveTab('facturas')}
             >
               Facturas
-            </button>
-          </li>
-          <li>
-            <button
-              className={activeTab === 'saldos' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
-              onClick={() => setActiveTab('saldos')}
-            >
-              Saldos
-            </button>
-          </li>
-          <li>
-            <button
-              className={activeTab === 'itinerario' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
-              onClick={() => setActiveTab('itinerario')}
-            >
-              Itinerario PDF
             </button>
           </li>
         </ul>
@@ -124,10 +142,7 @@ const ViewEscala = () => {
       {/* Contenido según la pestaña seleccionada */}
       <div className="view-escala-tab-content">
         {activeTab === 'general' && <General escala={escala} />}
-        {activeTab === 'servicios' && <Servicios />}
-        {activeTab === 'facturas' && <Facturas />}
-        {activeTab === 'saldos' && <Saldos />}
-        {activeTab === 'itinerario' && <ItinerarioPDF />}
+        {activeTab === 'facturas' && <Facturas facturas={facturas} searchTerm={searchTerm} handleSearch={handleSearch} />}
       </div>
     </div>
   );

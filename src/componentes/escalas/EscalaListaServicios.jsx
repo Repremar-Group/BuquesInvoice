@@ -32,7 +32,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const handleAgregarServicio = async (e) => {
       e.preventDefault();
       try {
-          await axios.post('http://localhost:3000/api/agregarServicio', { servicio, id });
+        await axios.post('http://localhost:5000/api/escalas/agregarservicio', { id, servicio });
           setServicio('');
           fetchServicios();
       } catch (error) {
@@ -42,13 +42,14 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   };
 
   const handleEliminarServicio = async (idServicio) => {
-      try {
-          await axios.delete(`http://localhost:3000/api/eliminarServicio/${idServicio}`);
-          fetchServicios();
-      } catch (error) {
-          setError('Error al eliminar el servicio');
-          console.error(error);
-      }
+    try {
+        const response = await axios.delete(`http://localhost:5000/api/escalas/eliminarservicio/${idServicio}`);
+        console.log(response.data);  // Verifica la respuesta del servidor
+        fetchServicios();
+    } catch (error) {
+        console.error('Error al eliminar el servicio:', error);
+        setError('Error al eliminar el servicio');
+    }
   };
 
   const filteredData = servicios.filter((row) =>
@@ -88,10 +89,10 @@ const EscalaListaServicios = ({ id, closeModal }) => {
           </thead>
           <tbody>
             {displayedItems.map((row) => (
-              <tr key={row.id}>
+              <tr key={row.idservicio}>
                 <td>{row.nombre}</td>
                 <td>
-                  <button className="action-button" onClick={() => handleEliminarServicio(row.id)}>❌</button>
+                  <button className="action-button" onClick={() => handleEliminarServicio(row.idservicio)}>❌</button>
                 </td>
               </tr>
             ))}
