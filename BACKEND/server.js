@@ -138,6 +138,8 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
     res.json(results); // Devuelve los servicios encontrados
   });
 });
+
+
 // Endpoint para buscar proveedores
 app.get('/api/obtenerproveedor', (req, res) => {
   const search = req.query.search;
@@ -149,6 +151,8 @@ app.get('/api/obtenerproveedor', (req, res) => {
     res.json(results);
   });
 });
+
+
 //Endpoint para obtener el listado de facturas 
 app.get('/api/previewfacturas', (req, res) => {
   // Consulta SQL para obtener las facturas y sus datos relacionados
@@ -190,20 +194,22 @@ app.get('/api/buscarescalaasociada', (req, res) => {
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada, filtrado por buque
   const query = `
     SELECT 
-      itinerarios.id,
-      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
-      lineas.nombre AS linea,
-      buques.nombre AS buque,
-      puertos.nombre AS puerto,
-      operadores.nombre AS operador
-    FROM itinerarios
-    LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
-    LEFT JOIN buques ON itinerarios.id_buque = buques.id
-    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
-    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-    WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-      AND buques.nombre LIKE ? -- Filtro por buque usando el término de búsqueda
-    ORDER BY itinerarios.eta DESC
+  itinerarios.id,
+  itinerarios.id_puerto,
+  DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+  lineas.nombre AS linea,
+  buques.nombre AS buque,
+  puertos.nombre AS puerto,
+  operadores.nombre AS operador
+FROM itinerarios
+LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
+LEFT JOIN buques ON itinerarios.id_buque = buques.id
+LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+  AND buques.nombre LIKE ?  -- Filtro por buque usando el término de búsqueda
+  AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
+ORDER BY itinerarios.eta DESC;
   `;
 
   // Preparamos el término de búsqueda para el operador LIKE
@@ -239,6 +245,7 @@ app.get('/api/previewescalas', (req, res) => {
       LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
       LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
       WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+      AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
       ORDER BY itinerarios.eta DESC
     `;
   console.log('Recibiendo solicitud para obtener itinerarios...');
@@ -500,7 +507,7 @@ app.get('/api/obteneroperadores', (req, res) => {
 // Endpoint para obtener una escala específica por id
 app.get('/api/viewescala/:id', (req, res) => {
   const escalaId = req.params.id; // Obtenemos el id de la URL
- 
+
   const query = `
     SELECT
       itinerarios.id,
@@ -516,20 +523,158 @@ app.get('/api/viewescala/:id', (req, res) => {
     LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
     WHERE itinerarios.id = ?;
   `;
- 
+
   // Ejecutar la consulta con el id de la escala como parámetro
   connectionitinerarios.query(query, [escalaId], (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de la escala:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de la escala' });
     }
- 
+
     if (results.length === 0) {
       return res.status(404).json({ error: 'Escala no encontrada' });
     }
- 
+
     // Enviar los datos de la escala encontrada como respuesta
     res.json(results[0]);
   });
 });
- 
+
+// Endpoint para eliminar servicio en escala
+app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
+  const { idservicio } = req.params;  // Cambiado a req.params
+
+  const query = 'DELETE FROM serviciosescalas WHERE idservicio = ?';
+
+  connectionbuquesinvoice.query(query, [idservicio], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar el servicio de la escala:', err);
+      return res.status(500).json({ error: 'Error al eliminar el servicio' });
+    }
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    // Enviar una respuesta indicando que la eliminación fue exitosa
+    res.json({ message: 'Servicio eliminado con éxito' });
+  });
+});
+
+// Endpoint para agregar un servicio a una escala
+app.post('/api/escalas/agregarservicio', (req, res) => {
+  const { id, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+
+  if (!id || !servicio) {
+    return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
+  }
+
+  const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+
+  connectionbuquesinvoice.query(query, [id, servicio], (err, results) => {
+    if (err) {
+      console.error('Error al agregar el servicio a la escala:', err);
+      return res.status(500).json({ error: 'Error al agregar el servicio' });
+    }
+
+    // Respuesta indicando éxito en la adición del servicio
+    res.json({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
+  });
+});
+
+app.get('/api/viewescalafacturas/:id', (req, res) => {
+  const escalaId = req.params.id;
+  console.log(`Escala ID recibido: ${escalaId}`); // Verifica el ID recibido
+
+  if (!escalaId) {
+    return res.status(400).json({ error: 'ID de escala no proporcionado' });
+  }
+
+  const query = `
+    SELECT
+    idfacturas, 
+    numero, 
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
+    moneda, 
+    monto, 
+    escala_asociada, 
+    proveedor, 
+    estado, 
+    gia 
+    FROM facturas
+    WHERE facturas.escala_asociada = ?;
+  `;
+
+  // Log para verificar la consulta antes de ejecutarla
+  console.log(`Ejecutando consulta: ${query} con ID: ${escalaId}`);
+
+  connectionbuquesinvoice.query(query, [escalaId], (err, results) => {
+    if (err) {
+      console.error('Error al consultar las facturas:', err); // Muestra el error específico
+      return res.status(500).json({ error: 'Error interno del servidor al consultar las facturas' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron facturas asociadas a la escala proporcionada' });
+    }
+
+    console.log('Facturas encontradas:', results); // Muestra los resultados obtenidos
+    res.json(results); // Envía todas las facturas en lugar de `results[0]`
+  });
+});
+
+app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
+  const puertoId = req.params;
+  console.log('Puerto ID recibido:', puertoId); // Asegúrate de que se imprime el valor correcto
+  const query = `
+    SELECT *
+    FROM servicios
+    WHERE servicios.puertos = ?;
+  `;
+  connectionbuquesinvoice.query(query, [puertoId], (err, results) => {
+    if (err) {
+      console.error('Error al consultar los serviciospuertos:', err);
+      return res.status(500).json({ error: 'Error interno del servidor al consultar los servicios puertos' });
+    }
+
+    if (results.length === 0) {
+      console.log('No se encontraron servicios para este puerto');
+      return res.status(404).json({ error: 'No se encontraron servicios puertos' });
+    }
+
+    console.log('Servicios Puertos:', results);
+    res.json(results);
+  });
+});
+
+
+app.post('/api/insertserviciospuertos', (req, res) => {
+  console.log('Cuerpo de la solicitud:', req.body);  // Verificar el contenido
+  const servicios = req.body.servicios;
+
+  if (!servicios || !Array.isArray(servicios)) {
+    return res.status(400).json({ error: 'La lista de servicios es requerida' });
+  }
+
+  const query = 'INSERT INTO serviciosescalas (nombre, idescala) VALUES (?, ?)';
+
+  // Utilizar una transacción o Promise.all para manejar múltiples inserciones
+  const promises = servicios.map((servicio) => {
+    const { idescala, nombre } = servicio;
+    return new Promise((resolve, reject) => {
+      connectionbuquesinvoice.query(query, [nombre, idescala], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+  });
+
+  Promise.all(promises)
+    .then((results) => {
+      res.json({ message: 'Servicios agregados con éxito', serviciosIds: results.map(r => r.insertId) });
+    })
+    .catch((err) => {
+      console.error('Error al agregar los servicios:', err);
+      res.status(500).json({ error: 'Error al agregar los servicios' });
+    });
+});

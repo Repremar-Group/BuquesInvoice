@@ -65,6 +65,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
 
   const closeModalAgregarServiciosEscala = () => {
     setIsModalOpen(false);
+
+    
   };
 
   const itemsPerPage = 8; // Cambia este número según tus necesidades
@@ -111,8 +113,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 <td title={row.Operador} >{row.operador}</td>
                 <td>
                   <div className="action-buttons">
-                    <Link to={`/ViewEscala/${row.EscalaId}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
-                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.Buque, row.EscalaId)}>📃</button>
+                    <Link to={`/ViewEscala/${row.id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
+                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
                   </div>
                 </td>
               </tr>
@@ -122,8 +124,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
         {/* Modal Agregar Servicios */}
         {isModalOpen && (
           <div className="modal-overlay active" onClick={closeModalAgregarServiciosEscala}>
-            <div className="modal">
-
+            <div className="modal-container active" onClick={(e) => e.stopPropagation()}>
+              <EscalaListaServicios id={idAModificar} closeModal={closeModalAgregarServiciosEscala} />
             </div>
           </div>
         )}
