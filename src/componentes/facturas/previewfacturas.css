@@ -39,11 +39,17 @@
 }
 
 .search-bar {
-    display: left;
-    align-items: center;
-    margin-bottom: 10px;
-
-}
+    display: flex;
+    justify-content: space-between; /* Coloca elementos en extremos opuestos */
+    align-items: center; /* Alinea verticalmente los elementos */
+    gap: 10px; /* Espaciado entre elementos */
+  }
+  
+  .search-left {
+    display: flex;
+    align-items: center; /* Alinea verticalmente los elementos */
+    gap: 10px; /* Espaciado entre los elementos de la izquierda */
+  }
 
 .add-button {
     background: none;

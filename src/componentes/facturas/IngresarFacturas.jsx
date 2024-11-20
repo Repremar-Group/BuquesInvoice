@@ -25,6 +25,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   //Estados para manejar los servicios
   const [servicioslista, setServiciosLista] = useState([]); // Estado para almacenar los servicios
   const [isFetchedServicios, setIsFetchedServicios] = useState(false); // Para evitar múltiples llamadas
+
   const fetchServicios = async () => {
     try {
       console.log(escalasociadaid);
@@ -116,7 +117,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     setEscalaAsociadaId(escala.id);
     setIsModalOpenEscala(false); // Cierra el modal
 
-    // Agregar console.log para ver el id de la escala seleccionada
+    // Se chequea que la escala tenga o no tenga servicios para agregarlos todos
     console.log('ID de la escala seleccionada:', escala.id);
     if (!isFetchedServicios) {
 

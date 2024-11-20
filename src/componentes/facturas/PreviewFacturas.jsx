@@ -4,12 +4,18 @@ import axios from 'axios';
 import './previewfacturas.css';
 import { Link } from "react-router-dom";
 import ModificarFactura from './ModificarFactura';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const PreviewEscalas = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [facturas, setFacturas] = useState([]);
   const [error, setError] = useState('');
+  //Estados para descargar pdf
+  const [loading, setLoading] = useState(false);
+  const [errorpdf, setErrorpdf] = useState(null);
+
   //Estados a Modificar
   const [idamodificar, setIdaModificar] = useState('');
 
@@ -21,7 +27,8 @@ const PreviewEscalas = () => {
   // Función para obtener las facturas
   const fetchFacturas = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/previewfacturas'); // Cambia la URL si es necesario
+      const response = await axios.get('http://localhost:5000/api/previewfacturas');
+      console.log(response.data);
       setFacturas(response.data);
     } catch (err) {
       console.error('Error al obtener facturas:', err);
@@ -33,6 +40,58 @@ const PreviewEscalas = () => {
   useEffect(() => {
     fetchFacturas();
   }, []);
+
+  //Handle para descargar el pdf con NC
+  const handleDownloadPDF = async () => {
+    setLoading(true);
+    setErrorpdf(null);
+
+    try {
+      // Realizar la primera solicitud (facturas con notas de crédito)
+      const responseWithNC = await axios.get('http://localhost:5000/api/exportarpdf', {
+        responseType: 'blob',
+      });
+
+      // Descargar el primer archivo
+      const urlWithNC = window.URL.createObjectURL(responseWithNC.data);
+      const linkWithNC = document.createElement('a');
+      linkWithNC.href = urlWithNC;
+      linkWithNC.setAttribute('download', 'facturas_con_nc.pdf');
+      document.body.appendChild(linkWithNC);
+      linkWithNC.click();
+      linkWithNC.parentNode.removeChild(linkWithNC);
+      window.URL.revokeObjectURL(urlWithNC);
+
+      // Realizar la segunda solicitud (facturas sin notas de crédito)
+      const responseWithoutNC = await axios.get('http://localhost:5000/api/exportarpdfsinnotas', {
+        responseType: 'blob',
+      });
+
+      // Descargar el segundo archivo
+      const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
+      const linkWithoutNC = document.createElement('a');
+      linkWithoutNC.href = urlWithoutNC;
+      linkWithoutNC.setAttribute('download', 'facturas_sin_nc.pdf');
+      document.body.appendChild(linkWithoutNC);
+      linkWithoutNC.click();
+      linkWithoutNC.parentNode.removeChild(linkWithoutNC);
+      window.URL.revokeObjectURL(urlWithoutNC);
+
+      //Actualizo la lista de facturas
+      fetchFacturas();
+
+    } catch (err) {
+      console.error('Error al descargar los archivos:', err);
+      setErrorpdf('No existen facturas para imprimir o no se pudo generar el reporte.');
+    } finally {
+      setLoading(false); // Terminar el proceso de carga
+    }
+  };
+  useEffect(() => {
+    if (errorpdf) {
+      toast.error('No existen facturas para imprimir o no se pudo generar el reporte.');
+    }
+  }, [errorpdf]);
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
@@ -88,17 +147,27 @@ const PreviewEscalas = () => {
 
   return (
     <div className="Contenedor_Principal">
+      <ToastContainer/>
       <div className='titulo-estandar'><h1>Facturas</h1></div>
       <div className="table-container">
         <div className="search-bar">
-          <Link to="/facturas/ingresar"><button className="add-button">➕</button></Link>
-          <input
-            className='input_buscar'
-            type="text"
-            placeholder="Buscar"
-            value={searchTerm}
-            onChange={handleSearch}
-          />
+          <div className="search-left">
+            <Link to="/facturas/ingresar"><button className="add-button">➕</button></Link>
+            <input
+              className="input_buscar"
+              type="text"
+              placeholder="Buscar"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
+          <button
+            className="btn-estandartablas"
+            onClick={handleDownloadPDF}
+            disabled={loading}
+          >
+            {loading ? 'Generando PDF...' : 'Descargar Reporte PDF'}
+          </button>
         </div>
         {error && <div className="error">{error}</div>}
         <table className='tabla-clientes'>
@@ -178,7 +247,7 @@ const PreviewEscalas = () => {
         <>
           <div className="modal-overlay active" onClick={closeModalModificar}></div>
           <div className="modal-container active">
-            <ModificarFactura closeModal={closeModalModificar} Id={idamodificar}  />
+            <ModificarFactura closeModal={closeModalModificar} Id={idamodificar} />
           </div>
         </>
       )}
