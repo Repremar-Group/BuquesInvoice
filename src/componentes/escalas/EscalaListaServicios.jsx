@@ -5,24 +5,24 @@ import './previewescalas.css';
 
 const EscalaListaServicios = ({ id, closeModal }) => {
 
-  const [servicio, setServicio] = useState('');
+  const [serviciomodal, setServicioModal] = useState('');
   const [nombre, setSNombre] = useState('');
-  const [servicios, setServicios] = useState([]);
+  const [serviciosmodal, setServiciosModal] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
 
   const itemsPerPage = 25;
 
   useEffect(() => {
-      fetchServicios(id);
+      fetchServiciosModal(id);
   }, []);
 
-  const fetchServicios = async () => {
+  const fetchServiciosModal = async () => {
     try {
       console.log(id);
       const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${id}`);
-      console.log(response.data);
-      setServicios(response.data);
+      console.log('log en modal', response.data);
+      setServiciosModal(response.data);
     } catch (error) {
       console.error('Error al obtener servicios:', error);
     }
@@ -32,8 +32,8 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const handleAgregarServicio = async (e) => {
       e.preventDefault();
       try {
-        await axios.post('http://localhost:5000/api/escalas/agregarservicio', { id, servicio });
-          setServicio('');
+        await axios.post('http://localhost:5000/api/escalas/agregarservicio', { id, serviciomodal });
+          setServicioModal('');
           fetchServicios();
       } catch (error) {
           setError('Error al agregar el servicio');
@@ -45,14 +45,14 @@ const EscalaListaServicios = ({ id, closeModal }) => {
     try {
         const response = await axios.delete(`http://localhost:5000/api/escalas/eliminarservicio/${idServicio}`);
         console.log(response.data);  // Verifica la respuesta del servidor
-        fetchServicios();
+        fetchServiciosModal();
     } catch (error) {
         console.error('Error al eliminar el servicio:', error);
         setError('Error al eliminar el servicio');
     }
   };
 
-  const filteredData = servicios.filter((row) =>
+  const filteredData = serviciosmodal.filter((row) =>
       row.nombre.toLowerCase().includes(nombre.toLowerCase())
   );
 
@@ -73,8 +73,8 @@ const EscalaListaServicios = ({ id, closeModal }) => {
             <input className='input_buscar'
               type="text"
               placeholder="Agregar Servicio"
-              value={servicio}
-              onChange={(e) => setServicio(e.target.value)}
+              value={serviciomodal}
+              onChange={(e) => setServicioModal(e.target.value)}
             />
             <button type='submit' className="add-button">➕</button>
           </div>

@@ -268,13 +268,15 @@ app.get('/api/previewescalas', (req, res) => {
         lineas.nombre AS linea,
         buques.nombre AS buque,
         puertos.nombre AS puerto,
-        operadores.nombre AS operador
+        operadores.nombre AS operador,
+        itinerarios.id_puerto
       FROM itinerarios
       LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
       LEFT JOIN buques ON itinerarios.id_buque = buques.id
       LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
       LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
       WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+      AND itinerarios.eta >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
       AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
       ORDER BY itinerarios.eta DESC
     `;
@@ -770,7 +772,7 @@ app.get('/api/viewescalafacturas/:id', (req, res) => {
 });
 
 app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
-  const puertoId = req.params;
+  const puertoId = req.params.puertos;
   console.log('Puerto ID recibido:', puertoId); // Asegúrate de que se imprime el valor correcto
   const query = `
     SELECT *

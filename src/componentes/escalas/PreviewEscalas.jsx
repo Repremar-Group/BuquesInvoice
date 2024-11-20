@@ -48,6 +48,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
   }, []); // El useEffect se ejecuta solo una vez cuando el componente se monta
 
 
+
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
     setCurrentPage(0); // Resetear la página actual al buscar
@@ -56,17 +57,59 @@ const PreviewEscalas = ({ isLoggedIn }) => {
   const handlePageClick = (event) => {
     setCurrentPage(event.selected);
   };
+  const [servicios, setServicios] = useState([]);
+  const handleAgregarServiciosEscala = (buque, escalaId, idPuerto) => {
+    setIDAModificar(escalaId);
 
-  const handleAgregarServiciosEscala = (buque, EscalaId) => {
-    setIDAModificar(EscalaId);
     setEscalaAModificar(buque);
+    const fetchServicios = async () => {
+      try {
+        console.log(escalaId);
+        const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalaId}`);
+        console.log('resultado obtener servicios de la escala', response.data);
+        setServicios(response.data);
+
+        if (response.data.length === 0) {
+          console.log("La variable 'servicios' está vacía.");
+          try {
+            console.log('Segundo log', idPuerto); // Verificar el puerto
+            const response1 = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${idPuerto}`);
+
+            // Transformar el listado para solo tener 'nombre' y 'idescala'
+            let serviciosTransformados = response1.data.map(servicio => ({
+              nombre: servicio.nombre,
+              idescala: escalaId  // idescala es igual a escala.id
+            }));
+            console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
+            console.log('lista sin modificar', response1.data); // Ver los datos originales que trae la API
+
+            console.log('Datos enviados al servidor:', serviciosTransformados);
+            // Cambiar el formato enviado al servidor
+            const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+              servicios: serviciosTransformados
+            })
+            serviciosTransformados = [];
+            console.log('serviciosTransformados después de resetear:', serviciosTransformados);
+            setServicios([]);
+            console.log('servicios después de resetear:', servicios);
+
+          } catch (error) {
+            console.error('Error al obtener servicios puertos:', error);
+          }
+
+        } else {
+          console.log("La variable 'servicios' tiene datos.");
+        }
+      } catch (error) {
+        console.error('Error al obtener servicios:', error);
+      }
+    }
+    fetchServicios();
     setIsModalOpen(true); // Establecer modal como abierto
   };
 
   const closeModalAgregarServiciosEscala = () => {
     setIsModalOpen(false);
-
-    
   };
 
   const itemsPerPage = 8; // Cambia este número según tus necesidades
@@ -114,7 +157,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
                 <td>
                   <div className="action-buttons">
                     <Link to={`/ViewEscala/${row.id}`}><button className="action-button" title="Ver Escala">🔎</button></Link>
-                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id)}>📃</button>
+                    <button className="action-button" onClick={() => handleAgregarServiciosEscala(row.buque, row.id, row.id_puerto)}>📃</button>
                   </div>
                 </td>
               </tr>
