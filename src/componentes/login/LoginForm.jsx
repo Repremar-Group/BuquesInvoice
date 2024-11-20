@@ -12,9 +12,17 @@ const LoginForm = ({ onLoginSuccess }) => {
     // Array de usuarios válidos
     const usuariosValidos = [
         { usuario: "admin", contraseña: "admin" },
-        { usuario: "it", contraseña: "sistemas" }
+        { usuario: "jpgomez", contraseña: "jpg0mez1372" },
+        { usuario: "gdelossantos", contraseña: "gd3lossant0s41372" },
+        { usuario: "rbalbuena", contraseña: "rb4lbuen41372" },
+        { usuario: "lpatetta", contraseña: "lp4tet41372" },
+        { usuario: "tloustalet", contraseña: "tl0ust4let1372" },
+        { usuario: "idossantos", contraseña: "id0sant0s1372" },
+        { usuario: "dremigio", contraseña: "dr3mig1o1372" },
+        { usuario: "pporra", contraseña: "pp0rr41372" },
+        { usuario: "jchaud", contraseña: "jc4ud1372" },
+        { usuario: "sdacosta", contraseña: "sd4cost41372" }
     ];
-
     // Manejar el evento de submit
     const handleSubmit = (e) => {
         e.preventDefault(); // Evita la recarga de la página

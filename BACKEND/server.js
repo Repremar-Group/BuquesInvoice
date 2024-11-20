@@ -4,6 +4,10 @@ const path = require('path');
 const cors = require('cors');
 const mysql = require('mysql');
 
+//Constantes para manejar las caratulas con pdflib
+const { PDFDocument, rgb } = require('pdf-lib');
+const fs = require('fs');
+
 const app = express();
 app.use(cors());
 app.use(express.json());  // Debe estar antes de las rutas}
@@ -46,6 +50,7 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL');
 });
+
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
 // Endpoint para obtener los detalles de una factura
@@ -196,7 +201,9 @@ app.get('/api/previewfacturas', (req, res) => {
     escala_asociada, 
     proveedor, 
     estado, 
-    gia 
+    gia,
+    url_factura,
+    url_notacredito
   FROM facturas
 `;
 
@@ -746,7 +753,8 @@ app.get('/api/viewescalafacturas/:id', (req, res) => {
     escala_asociada, 
     proveedor, 
     estado, 
-    gia 
+    gia,
+    url_factura
     FROM facturas
     WHERE facturas.escala_asociada = ?;
   `;
@@ -824,7 +832,368 @@ app.post('/api/insertserviciospuertos', (req, res) => {
       res.status(500).json({ error: 'Error al agregar los servicios' });
     });
 });
+//Obtener todos los datos para listar los servicios en viewescala
+app.get('/api/viewescalaservicios/:id', (req, res) => {
+  console.log('Ruta alcanzada');
+  console.log('ID Escala recibido:', req.params.id);  // Muestra el parámetro de la URL
 
+  const { id } = req.params;  // Obtiene el parámetro de la URL (id)
+
+  console.log(`ID de escala recibido: ${id}`);
+
+  const query = `
+    SELECT 
+        sf.nombre AS servicio,
+        sf.estado AS estado_servicio,
+        f.numero AS factura,
+        f.idfacturas AS nro_factura,
+        f.estado AS estado_factura,
+        f.url_factura AS pdf
+    FROM 
+        facturas f
+    INNER JOIN 
+        serviciosfacturas sf ON f.idfacturas = sf.idfactura
+    INNER JOIN 
+        serviciosescalas se ON se.nombre = sf.nombre AND se.idescala = ?
+    WHERE 
+        f.escala_asociada = ?
+    UNION ALL
+    SELECT 
+        se.nombre AS servicio,
+        'Pendiente' AS estado_servicio,
+        NULL AS factura,
+        NULL AS nro_factura,
+        'Pendiente' AS estado_factura,
+        NULL AS pdf
+    FROM 
+        serviciosescalas se
+    WHERE 
+        se.idescala = ?
+        AND se.nombre NOT IN (
+            SELECT sf.nombre
+            FROM serviciosfacturas sf
+            INNER JOIN facturas f ON sf.idfactura = f.idfacturas
+            INNER JOIN serviciosescalas se2 ON se2.nombre = sf.nombre AND se2.idescala = ?
+            WHERE f.escala_asociada = ?
+        );
+  `;
+  console.log('Conectando a la base de datos...');
+  connectionbuquesinvoice.query(query, [id, id, id, id, id], (err, results) => {
+    if (err) {
+      console.error('Error al obtener los servicios asociados a la escala:', err);
+      return res.status(500).json({ error: 'Error al obtener los servicios asociados a la escala' });
+    }
+
+    console.log('Resultados obtenidos:', results); // Ver si los resultados se obtienen
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron servicios asociados a la escala' });
+    }
+
+    res.json({ servicios: results });
+  });
+});
+//Endpoint para verificar si exuste una caratula
+app.get('/api/verificarcaratula/:idEscala', (req, res) => {
+  const idEscala = req.params.idEscala;
+  const query = 'SELECT url_caratula FROM caratulas WHERE id_escala = ?';
+
+  connectionbuquesinvoice.query(query, [idEscala], (error, results) => {
+    if (error) {
+      console.error('Error al verificar la carátula:', error);
+      return res.status(500).send('Error del servidor');
+    }
+
+    if (results.length > 0) {
+      res.json({ existe: true, url: results[0].url_caratula });
+    } else {
+      res.json({ existe: false });
+    }
+  });
+});
+
+
+// Función que envuelve la consulta en una promesa
+const queryPromise = (query, connection) => {
+  return new Promise((resolve, reject) => {
+    connection.query(query, (err, results) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+};
+app.get('/api/exportarpdf', async (req, res) => {
+  try {
+    // Consulta SQL para obtener las facturas que no tienen `gia` marcado
+    const queryFacturas = `
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
+        f.gia,
+        f.url_factura,
+        f.url_notacredito
+      FROM facturas f
+      WHERE f.gia = 0
+      ORDER BY f.escala_asociada, f.fecha ASC;
+    `;
+
+    // Realizar la consulta a la base de datos de facturas
+    const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
+    if (!Array.isArray(facturas) || facturas.length === 0) {
+      return res.status(404).json({ error: 'No hay facturas para exportar.' });
+    }
+
+    // Obtener los IDs de las escalas asociadas
+    const escalaIds = facturas.map(factura => factura.escala_asociada);
+
+    // Consulta SQL para obtener los datos de las escalas
+    const queryEscalas = `
+      SELECT 
+        itinerarios.id AS escala_id,
+        itinerarios.viaje,
+        buques.nombre AS buque,
+        DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+        puertos.nombre AS puerto,
+        operadores.nombre AS operador
+      FROM itinerarios
+      LEFT JOIN buques ON itinerarios.id_buque = buques.id
+      LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+      LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+      WHERE itinerarios.id IN (${escalaIds.join(',')});
+    `;
+
+    // Realizar la consulta a la base de datos de itinerarios
+    const escalas = await queryPromise(queryEscalas, connectionitinerarios);
+    if (escalas.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
+    }
+
+    // Crear un mapa para acceder a los datos de las escalas rápidamente
+    const escalasMap = escalas.reduce((acc, escala) => {
+      acc[escala.escala_id] = escala;
+      return acc;
+    }, {});
+
+    // Agrupar las facturas por escala
+    const escalasConFacturas = facturas.reduce((acc, factura) => {
+      const escalaId = factura.escala_asociada;
+      if (!acc[escalaId]) {
+        acc[escalaId] = {
+          escala: escalasMap[escalaId], // Información de la escala
+          facturas: []
+        };
+      }
+      acc[escalaId].facturas.push(factura);
+      return acc;
+    }, {});
+
+    // Crear un documento PDF usando pdf-lib
+    const pdfDocConNC = await PDFDocument.create();
+    const font = pdfDocConNC.embedStandardFont('Helvetica');
+
+    // Recorrer las escalas y generar las páginas del PDF
+    for (const escalaData of Object.values(escalasConFacturas)) {
+      const escala = escalaData.escala;
+      const facturas = escalaData.facturas;
+
+      // Agregar una página para la carátula de la escala
+      const pageConNC = pdfDocConNC.addPage();
+      const { width, height } = pageConNC.getSize();
+
+      pageConNC.drawText(`${escala.buque} ${escala.eta}`, {
+        x: width / 2 - 100, y: height - 50, size: 18, font, color: rgb(0, 0, 0)
+      });
+      pageConNC.drawText(`Buque: ${escala.buque}`, { x: 50, y: height - 100, size: 14, font });
+      pageConNC.drawText(`ETA: ${escala.eta}`, { x: 50, y: height - 120, size: 14, font });
+      pageConNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
+      pageConNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
+
+      // Agregar facturas y notas de crédito al PDF
+      for (const factura of facturas) {
+        if (factura.url_factura) {
+          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
+          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
+          const [facturaPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          pdfDocConNC.addPage(facturaPdfPage);
+        }
+
+        if (factura.url_notacredito) {
+          const notaCreditoPdfPath = path.join(__dirname, '..', 'public', factura.url_notacredito);
+          const notaCreditoPdfBytes = fs.readFileSync(notaCreditoPdfPath);
+          const notaCreditoPdfDoc = await PDFDocument.load(notaCreditoPdfBytes);
+          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(notaCreditoPdfDoc, notaCreditoPdfDoc.getPageIndices());
+          pdfDocConNC.addPage(notaCreditoPdfPage);
+        }
+      }
+    }
+
+    // Guardar el archivo PDF
+    const pdfBytesConNC = await pdfDocConNC.save();
+    const pdfPathConNC = path.join(__dirname, 'temp', 'reporte_facturas_con_NC.pdf');
+    fs.writeFileSync(pdfPathConNC, pdfBytesConNC);
+
+    // Enviar el PDF como respuesta para descarga
+    res.download(pdfPathConNC, 'reporte_facturas_con_NC.pdf', (err) => {
+      if (err) {
+        console.error('Error al descargar el archivo PDF:', err);
+      }
+      // Eliminar el archivo después de enviarlo
+      fs.unlinkSync(pdfPathConNC);
+    });
+
+  } catch (error) {
+    console.error('Error al generar el archivo PDF:', error);
+    res.status(500).json({ error: 'Error al generar el archivo PDF' });
+  }
+});
+
+app.get('/api/exportarpdfsinnotas', async (req, res) => {
+  try {
+    // Consulta SQL para obtener las facturas que no tienen `gia` marcado
+    const queryFacturas = `
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
+        f.gia,
+        f.url_factura
+      FROM facturas f
+      WHERE f.gia = 0
+      ORDER BY f.escala_asociada, f.fecha ASC;
+    `;
+
+    // Realizar la consulta a la base de datos 
+    const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
+    if (!Array.isArray(facturas) || facturas.length === 0) {
+      return res.status(404).json({ error: 'No hay facturas para exportar.' });
+    }
+
+    // Obtener los IDs de las escalas asociadas
+    const escalaIds = facturas.map(factura => factura.escala_asociada);
+
+    // Consulta SQL para obtener los datos de las escalas
+    const queryEscalas = `
+      SELECT 
+        itinerarios.id AS escala_id,
+        itinerarios.viaje,
+        buques.nombre AS buque,
+        DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+        puertos.nombre AS puerto,
+        operadores.nombre AS operador
+      FROM itinerarios
+      LEFT JOIN buques ON itinerarios.id_buque = buques.id
+      LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+      LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+      WHERE itinerarios.id IN (${escalaIds.join(',')});
+    `;
+
+    // Realizar la consulta a la base de datos de itinerarios
+    const escalas = await queryPromise(queryEscalas, connectionitinerarios);
+    if (escalas.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
+    }
+
+    // Crear un mapa para acceder a los datos de las escalas rápidamente
+    const escalasMap = escalas.reduce((acc, escala) => {
+      acc[escala.escala_id] = escala;
+      return acc;
+    }, {});
+
+    // Agrupar las facturas por escala
+    const escalasConFacturas = facturas.reduce((acc, factura) => {
+      const escalaId = factura.escala_asociada;
+      if (!acc[escalaId]) {
+        acc[escalaId] = {
+          escala: escalasMap[escalaId], // Información de la escala
+          facturas: []
+        };
+      }
+      acc[escalaId].facturas.push(factura);
+      return acc;
+    }, {});
+
+    // Crear el pdf
+    const pdfDocSinNC = await PDFDocument.create();
+    const font = pdfDocSinNC.embedStandardFont('Helvetica');
+
+    // Array para guardar los id de las facturas procesadas
+    const facturasProcesadas = [];
+
+    // Recorrer las escalas y generar las páginas del pdf
+    for (const escalaData of Object.values(escalasConFacturas)) {
+      const escala = escalaData.escala;
+      const facturas = escalaData.facturas;
+
+      // Agregar una página para la carátula de la escala
+      const pageSinNC = pdfDocSinNC.addPage();
+      const { width, height } = pageSinNC.getSize();
+
+      pageSinNC.drawText(`${escala.buque} ${escala.eta}`, {
+        x: width / 2 - 100, y: height - 50, size: 18, font, color: rgb(0, 0, 0)
+      });
+      pageSinNC.drawText(`Buque: ${escala.buque}`, { x: 50, y: height - 100, size: 14, font });
+      pageSinNC.drawText(`ETA: ${escala.eta}`, { x: 50, y: height - 120, size: 14, font });
+      pageSinNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
+      pageSinNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
+
+      // Agregar únicamente las facturas al PDF
+      for (const factura of facturas) {
+        if (factura.url_factura) {
+          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
+          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
+          const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          pdfDocSinNC.addPage(facturaPdfPage);
+          
+          // Guardar el ID de la factura para actualizar después
+          facturasProcesadas.push(factura.idfacturas);
+        }
+      }
+    }
+
+    // Guardar el archivo 
+    const pdfBytesSinNC = await pdfDocSinNC.save();
+    const pdfPathSinNC = path.join(__dirname, 'temp', 'reporte_facturas_sin_NC.pdf');
+    fs.writeFileSync(pdfPathSinNC, pdfBytesSinNC);
+
+    // Actualizar las facturas en la base de datos para cambiar el valor de gia a 1
+    const queryUpdateGia = `
+      UPDATE facturas
+      SET gia = 1
+      WHERE idfacturas IN (${facturasProcesadas.join(',')});
+    `;
+    
+    await queryPromise(queryUpdateGia, connectionbuquesinvoice);
+
+    // Enviar el PDF como respuesta para descarga
+    res.download(pdfPathSinNC, 'reporte_facturas_sin_NC.pdf', (err) => {
+      if (err) {
+        console.error('Error al descargar el archivo PDF:', err);
+      }
+      // Eliminar el archivo después de enviarlo
+      fs.unlinkSync(pdfPathSinNC);
+    });
+
+  } catch (error) {
+    console.error('Error al generar el archivo PDF:', error);
+    res.status(500).json({ error: 'Error al generar el archivo PDF' });
+  }
+});
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');
 });

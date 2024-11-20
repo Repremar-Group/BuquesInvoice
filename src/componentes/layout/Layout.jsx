@@ -72,6 +72,19 @@ function Layout({ isLoggedIn, handleLogin }) {
                     }
                 />
                 {/* Ruta ViewFactura */}
+
+                {/* Ruta ViewEscala */}
+                <Route
+                    path="/api/viewescalaservicios/:id"
+                    element={
+                        isLoggedIn ? (
+                            <ViewEscala isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/login" />
+                        )
+                    }
+                />
+                {/* Ruta ViewFactura */}
                 <Route
                     path="/ViewFactura/:id"
                     element={
