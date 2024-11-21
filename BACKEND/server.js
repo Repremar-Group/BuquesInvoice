@@ -788,17 +788,17 @@ app.post('/api/escalas/agregarservicio', (req, res) => {
 });
 
 app.post('/api/escalas/agregarservicio2', (req, res) => {
-  const { selectedEscalaId, serviciomodal } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+  const { selectedEscalaId, serviciomodalToUpper } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
   console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
 
 
-  if (!selectedEscalaId || !serviciomodal) {
+  if (!selectedEscalaId || !serviciomodalToUpper) {
     return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
   }
 
   const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
 
-  connectionbuquesinvoice.query(query, [selectedEscalaId, serviciomodal], (err, results) => {
+  connectionbuquesinvoice.query(query, [selectedEscalaId, serviciomodalToUpper], (err, results) => {
     if (err) {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });

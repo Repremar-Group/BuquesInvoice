@@ -182,24 +182,33 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     }
   };
 
-  const handleAgregarServicioEscala = async (e) => {
-    e.preventDefault();
-    try {
-      const selectedEscalaId = selectedEscala.id;
-      console.log('Escala Id agregar servicio: ', selectedEscalaId);
-      console.log('Nombre servicio agregar servicio: ', serviciomodal);
-      await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodal });
-      const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
-        nombre: '',
-        estado: 'Pendiente', // Estado inicial
-      });
-      setNuevoServicioAgregado({ nombre: serviciomodal, estado: 'Pendiente' }); // Limpiar campos después de agregar
-      setServicios([...servicios, nuevoServicioAgregado]);
-    } catch (error) {
-      console.error(error);
-    }
-    fetchServicios();
-  };
+// Declarar el estado fuera de la función
+const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
+  nombre: '',
+  estado: '',
+});
+
+const handleAgregarServicioEscala = async (e) => {
+  e.preventDefault();
+  try {
+    const selectedEscalaId = selectedEscala.id;
+    console.log('Escala Id agregar servicio: ', selectedEscalaId);
+    console.log('Nombre servicio agregar servicio: ', serviciomodalToUpper);
+
+    // Configurar el nuevo servicio y agregarlo a la lista
+    const servicio = { nombre: serviciomodal.toUpperCase(), estado: 'Pendiente' };
+    setNuevoServicioAgregado(servicio);
+    setServicios([...servicios, servicio]);
+    console.log('Nuevo Servicio Agregado: ', servicio);
+    console.log('Servicios lista: ', servicios);
+
+    // Realizar la solicitud al backend
+    const serviciomodalToUpper = serviciomodal.toUpperCase();
+    await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodalToUpper });
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 
   // Función para manejar la eliminación de un servicio

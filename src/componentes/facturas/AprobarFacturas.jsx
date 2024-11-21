@@ -114,14 +114,13 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       // Filtra por estado
       const coincideEstado = estadoSeleccionado === "" || factura.estado === estadoSeleccionado;
 
-      const coincideBuque = buqueFiltro === "" || factura.buque.startsWith(buqueFiltro);
-
-      console.log('listado de facturas previo a filtrar',facturasOriginales);
+      const coincideBuque = buqueFiltro === "" || factura.buque.toLowerCase().startsWith(buqueFiltro.toLowerCase());
 
       return coincideNumero && coincideEstado && coincideBuque; // Devuelve true solo si cumple ambos filtros
     });
 
     setFacturas(facturasFiltradas);
+    console.log('listado de facturas filtradas', facturasFiltradas);
   };
   useEffect(() => {
     // Llama a la función cada vez que cambie un filtro o las facturas originales
@@ -134,6 +133,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   };
   const handleEstadoSeleccionado = (e) => {
     setEstadoSeleccionado(e.target.value); // Actualiza el estado
+    setIndiceFacturaActual(0);
   };
 
   useEffect(() => {
@@ -179,8 +179,9 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     // Restablecer los estados relacionados con la factura actual y escala
     setFacturaActual(null);
     setEscala(null);  // Limpia los datos de la escala
+    setIndiceFacturaActual(0);
 
-    axios.get('http://localhost:5000/api/obtenerfacturas2', {
+    axios.get('http://localhost:5000/api/obtenerfacturas', {
       params: { id_operador: operador }
     })
       .then((response) => {
@@ -447,6 +448,15 @@ const AprobarFacturas = ({ isLoggedIn }) => {
             type="text"
             id="fechaFactura"
             value={facturaActual ? facturaActual.fecha : ''}
+            readOnly
+          />
+        </div>
+        <div>
+          <label htmlFor="fechaFactura">Contador:</label>
+          <input
+            type="text"
+            id="contadorFactura"
+            value={`${indiceFacturaActual+1} / ${facturas.length}`}
             readOnly
           />
         </div>
