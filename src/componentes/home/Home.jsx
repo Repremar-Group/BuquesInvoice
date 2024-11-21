@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';  // Importar useNavigate
 import 'react-toastify/dist/ReactToastify.css';  // Importar los estilos de toastify
+import './home.css';
 
 const Home = () => {
   const [escalas, setEscalas] = useState([]);
@@ -42,6 +43,7 @@ const Home = () => {
           });
           console.error('Error al consultar las facturas pendientes:', error);
         });
+
       // Hacer la solicitud para obtener las escalas pendientes
       axios.get(`http://localhost:5000/api/escalas/pendientes/${idOperador}`)
         .then(response => {
@@ -56,43 +58,48 @@ const Home = () => {
     }
   }, []);
 
+  // Obtener el idOperador desde el localStorage
+  const idOperador = localStorage.getItem('idOperador');
+
+  // Si no hay idOperador, mostrar un mensaje de advertencia y no mostrar la tabla
+  if (!idOperador) {
+    return null;
+  }
+
   return (
-    <div>
-      <h1>Bienvenido a Buques Invoice</h1>
+    <div className="home-container">
+      <div className="home-header">
+        <h3>Escalas Pendientes de Aprobación</h3>
+      </div>
 
       {/* Mostrar la tabla de escalas pendientes si existen */}
       {escalas.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ETA</th>
-              <th>Línea</th>
-              <th>Buque</th>
-              <th>Puerto</th>
-              <th>Operador</th>
-              <th>Facturas Pendientes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {escalas.map(escala => (
-              <tr key={escala.id}>
-                <td>{escala.id}</td>
-                <td>{escala.eta}</td>
-                <td>{escala.linea}</td>
-                <td>{escala.buque}</td>
-                <td>{escala.puerto}</td>
-                <td>{escala.operador}</td>
-                <td>{escala.facturasPendientes}</td>
+        <div className="table-container">
+          <table className="home-table">
+            <thead>
+              <tr>
+                <th>Buque</th>
+                <th>ETA</th>
+                <th>Puerto</th>
+                <th>Facturas Pendientes</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {escalas.map(escala => (
+                <tr key={escala.id}>
+                  <td>{escala.buque}</td>
+                  <td>{escala.eta}</td>
+                  <td>{escala.puerto}</td>
+                  <td>{escala.facturasPendientes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <p>No hay escalas pendientes para el operador.</p>
+        <p className="home-empty-message">No hay escalas pendientes para el operador.</p>
       )}
 
-      {/* Este debe ir fuera del useEffect, solo una vez en el JSX */}
       <ToastContainer
         position="top-right"
         hideProgressBar={false}

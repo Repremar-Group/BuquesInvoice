@@ -114,14 +114,14 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       // Filtra por estado
       const coincideEstado = estadoSeleccionado === "" || factura.estado === estadoSeleccionado;
 
-      const coincideBuque = buqueFiltro === "" || factura.buque.startsWith(buqueFiltro);
+      const coincideBuque = buqueFiltro === "" || factura.buque.toLowerCase().startsWith(buqueFiltro.toLowerCase());
 
-      console.log('listado de facturas previo a filtrar',facturasOriginales);
 
       return coincideNumero && coincideEstado && coincideBuque; // Devuelve true solo si cumple ambos filtros
     });
 
     setFacturas(facturasFiltradas);
+    console.log('listado de facturas filtradas', facturasFiltradas);
   };
   useEffect(() => {
     // Llama a la función cada vez que cambie un filtro o las facturas originales
@@ -180,7 +180,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     setFacturaActual(null);
     setEscala(null);  // Limpia los datos de la escala
 
-    axios.get('http://localhost:5000/api/obtenerfacturas2', {
+    axios.get('http://localhost:5000/api/obtenerfacturas', {
       params: { id_operador: operador }
     })
       .then((response) => {
