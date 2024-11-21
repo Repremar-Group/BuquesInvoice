@@ -1302,80 +1302,45 @@ app.get('/api/facturas/pendientes/:idOperador', (req, res) => {
 app.get('/api/escalas/pendientes/:idOperador', (req, res) => {
   const idOperador = req.params.idOperador;
 
-  // 1. Consultar todas las escalas asociadas al operador en la base de datos de itinerarios
-  const queryItinerarios = `
+  // 1. Consulta para obtener itinerarios con facturas pendientes en ambas bases de datos
+  const query = `
     SELECT 
-      itinerarios.id,
-      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
-      lineas.nombre AS linea,
-      buques.nombre AS buque,
-      puertos.nombre AS puerto,
-      operadores.nombre AS operador,
-      itinerarios.id_linea,
-      itinerarios.id_buque,
-      itinerarios.id_puerto
-    FROM itinerarios
-    LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
-    LEFT JOIN buques ON itinerarios.id_buque = buques.id
-    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
-    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-    WHERE itinerarios.id_operador1 = ?
-    AND itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-    ORDER BY itinerarios.eta DESC
+  itinerarios_prod.itinerarios.id,
+  DATE_FORMAT(itinerarios_prod.itinerarios.eta, '%d-%m-%Y') AS eta,
+  itinerarios_prod.lineas.nombre AS linea,  -- Aquí debes agregar el prefijo de la base de datos
+  itinerarios_prod.buques.nombre AS buque,  -- También agregar el prefijo
+  itinerarios_prod.puertos.nombre AS puerto, -- Y lo mismo para los demás
+  itinerarios_prod.operadores.nombre AS operador,
+  itinerarios_prod.itinerarios.id_linea,
+  itinerarios_prod.itinerarios.id_buque,
+  itinerarios_prod.itinerarios.id_puerto,
+  COUNT(buquesinvoice.facturas.idfacturas) AS facturasPendientes
+FROM itinerarios_prod.itinerarios
+LEFT JOIN itinerarios_prod.lineas ON itinerarios_prod.itinerarios.id_linea = itinerarios_prod.lineas.id
+LEFT JOIN itinerarios_prod.buques ON itinerarios_prod.itinerarios.id_buque = itinerarios_prod.buques.id
+LEFT JOIN itinerarios_prod.puertos ON itinerarios_prod.itinerarios.id_puerto = itinerarios_prod.puertos.id
+LEFT JOIN itinerarios_prod.operadores ON itinerarios_prod.itinerarios.id_operador1 = itinerarios_prod.operadores.id
+LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
+  AND buquesinvoice.facturas.estado = 'Pendiente'
+WHERE itinerarios_prod.itinerarios.id_operador1 = ?
+  AND itinerarios_prod.itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+GROUP BY itinerarios_prod.itinerarios.id
+HAVING facturasPendientes > 0
+ORDER BY itinerarios_prod.itinerarios.eta DESC
   `;
 
-  connectionitinerarios.query(queryItinerarios, [idOperador], (err, itinerariosResults) => {
+  connectionbuquesinvoice.query(query, [idOperador], (err, results) => {
     if (err) {
       console.error('Error al consultar itinerarios:', err);
       return res.status(500).json({ error: 'Error al obtener los itinerarios' });
     }
 
-    if (itinerariosResults.length === 0) {
-      return res.status(404).json({ error: 'No se encontraron escalas asociadas al operador' });
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas con facturas pendientes' });
     }
 
-    // 2. Obtener las facturas pendientes para cada itinerario
-    const itinerariosConFacturas = [];
-
-    let processedCount = 0;
-    itinerariosResults.forEach((itinerario, index) => {
-      const idEscala = itinerario.id;
-
-      // Consulta para contar las facturas pendientes para cada escala
-      const queryFacturas = `
-        SELECT COUNT(idfacturas) AS pendientes
-        FROM facturas
-        WHERE escala_asociada = ? 
-        AND estado = 'Pendiente'
-      `;
-
-      connectionbuquesinvoice.query(queryFacturas, [idEscala], (err, facturaResults) => {
-        if (err) {
-          console.error('Error en la consulta de facturas:', err);
-          return res.status(500).json({ error: 'Error al obtener las facturas pendientes' });
-        }
-
-        // Si tiene facturas pendientes, agregamos la escala a la respuesta
-        if (facturaResults[0].pendientes > 0) {
-          itinerariosConFacturas.push({
-            id: itinerario.id,
-            eta: itinerario.eta,
-            linea: itinerario.linea,
-            buque: itinerario.buque,
-            puerto: itinerario.puerto,
-            operador: itinerario.operador,
-            facturasPendientes: facturaResults[0].pendientes,
-          });
-        }
-
-        processedCount++;
-
-        // Cuando todos los itinerarios han sido procesados, enviar la respuesta
-        if (processedCount === itinerariosResults.length) {
-          res.json(itinerariosConFacturas);
-        }
-      });
-    });
+    // Responder con los itinerarios que tienen facturas pendientes
+    res.json(results);
   });
 });
 app.get('/', (req, res) => {
