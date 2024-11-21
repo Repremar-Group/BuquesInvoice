@@ -1343,6 +1343,70 @@ ORDER BY itinerarios_prod.itinerarios.eta DESC
     res.json(results);
   });
 });
+// Endpoint para obtener facturas con estado "Requiere Nc"
+app.get('/api/facturas/requierenc', (req, res) => {
+  const query = `
+    SELECT 
+    idfacturas, 
+    numero, 
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
+    moneda, 
+    monto, 
+    proveedor, 
+    reclamadonc,
+    comentarios 
+    FROM facturas 
+    WHERE estado = 'Requiere Nc' 
+    AND DATEDIFF(CURDATE(), fecha) <= 15
+  `;
+
+  connectionbuquesinvoice.query(query, (err, results) => {
+    if (err) {
+      console.error('Error al consultar facturas:', err);
+      return res.status(500).json({ error: 'Error al obtener las facturas' });
+    }
+
+    res.json(results);
+  });
+});
+//Endpoint para Actualizar la factura que se le cargo como reclamado en la nc
+app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
+  const { idfacturas } = req.params;
+  const { reclamadonc, ultimoreclamadoncuser, fechareclamadonc } = req.body;
+
+  if (typeof reclamadonc === 'undefined' || !ultimoreclamadoncuser || !fechareclamadonc) {
+    return res.status(400).json({ error: 'Faltan datos necesarios para actualizar la factura' });
+  }
+
+  // Convertir fechareclamadonc al formato 'YYYY-MM-DD'
+  const formattedDate = new Date(fechareclamadonc).toISOString().split('T')[0];
+
+  const query = `
+    UPDATE facturas
+    SET reclamadonc = ?, 
+        ultimoreclamadoncuser = ?, 
+        fechareclamadonc = ?
+    WHERE idfacturas = ?
+  `;
+
+  connectionbuquesinvoice.query(
+    query,
+    [reclamadonc, ultimoreclamadoncuser, formattedDate, idfacturas],
+    (err, results) => {
+      if (err) {
+        console.error('Error al actualizar la factura:', err);
+        return res.status(500).json({ error: 'Error al actualizar la factura' });
+      }
+
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ error: 'Factura no encontrada' });
+      }
+
+      res.json({ message: 'Factura actualizada correctamente' });
+    }
+  );
+});
+
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');
 });

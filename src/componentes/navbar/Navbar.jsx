@@ -6,6 +6,8 @@ import logo from "../../img/LogoRepremar.png";
 const NavBar = () => {
     const handleLogout = () => {
         localStorage.removeItem('idOperador');
+        localStorage.removeItem('rol');
+        localStorage.removeItem('usuario');
     };
     return (
         <header className="navbar">
