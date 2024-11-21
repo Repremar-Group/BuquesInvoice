@@ -26,6 +26,8 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   const [servicioslista, setServiciosLista] = useState([]); // Estado para almacenar los servicios
   const [isFetchedServicios, setIsFetchedServicios] = useState(false); // Para evitar múltiples llamadas
 
+  const [serviciomodal, setServicioModal] = useState('');
+
   const fetchServicios = async () => {
     try {
       console.log(escalasociadaid);
@@ -145,22 +147,6 @@ const IngresarFacturas = ({ isLoggedIn }) => {
         }
       };
       fetchServiciosPuerto();
-      /*
-      const insertServiciosPuerto = async () => {
-        try {
-          console.log('Datos enviados al servidor:', serviciosTransformados);
-      
-          // Cambiar el formato enviado al servidor
-          const response = await axios.post('http://localhost:5000/api/insertserviciospuertos', { 
-            servicios: serviciosTransformados
-          });
-      
-          console.log('Respuesta del servidor:', response.data);
-        } catch (error) {
-          console.error('Error al agregar servicios puertos:', error);
-        }
-      };
-      insertServiciosPuerto();*/
     };
   };
 
@@ -195,6 +181,26 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       alert('Por favor, ingrese un nombre para el servicio');
     }
   };
+
+  const handleAgregarServicioEscala = async (e) => {
+    e.preventDefault();
+    try {
+      const selectedEscalaId = selectedEscala.id;
+      console.log('Escala Id agregar servicio: ', selectedEscalaId);
+      console.log('Nombre servicio agregar servicio: ', serviciomodal);
+      await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodal });
+      const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
+        nombre: '',
+        estado: 'Pendiente', // Estado inicial
+      });
+      setNuevoServicioAgregado({ nombre: serviciomodal, estado: 'Pendiente' }); // Limpiar campos después de agregar
+      setServicios([...servicios, nuevoServicioAgregado]);
+    } catch (error) {
+      console.error(error);
+    }
+    fetchServicios();
+  };
+
 
   // Función para manejar la eliminación de un servicio
   const handleEliminarServicio = (index) => {
@@ -441,6 +447,17 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                       <option key={index} value={servicio.nombre}>{servicio.nombre}</option>
                     ))}
                   </select>
+                  <p></p>
+                  <div className='div-parametros'>
+                    <input className='input_buscar'
+                      type="text"
+                      placeholder="Agregar Servicio"
+                      value={serviciomodal}
+                      onChange={(e) => setServicioModal(e.target.value)}
+                    />
+                    <button className="add-button" onClick={handleAgregarServicioEscala}>➕</button>
+                  </div>
+
                 </div>
 
                 <label >Estado:</label>
