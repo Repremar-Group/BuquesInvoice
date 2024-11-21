@@ -20,6 +20,8 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   const [operadores, setOperadores] = useState([]);  // Estado para almacenar los operadores
   const [operador, setOperador] = useState('');  // Estado para el operador seleccionado
   const [estadoSeleccionado, setEstadoSeleccionado] = useState('');
+  const [buqueFiltro, setBuqueFiltro] = useState(''); // Estado para el filtro del buque
+
 
   // Obtener los operadores desde el backend
   useEffect(() => {
@@ -112,7 +114,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       // Filtra por estado
       const coincideEstado = estadoSeleccionado === "" || factura.estado === estadoSeleccionado;
 
-      return coincideNumero && coincideEstado; // Devuelve true solo si cumple ambos filtros
+      const coincideBuque = buqueFiltro === "" || factura.buque.startsWith(buqueFiltro);
+
+      console.log('listado de facturas previo a filtrar',facturasOriginales);
+
+      return coincideNumero && coincideEstado && coincideBuque; // Devuelve true solo si cumple ambos filtros
     });
 
     setFacturas(facturasFiltradas);
@@ -120,7 +126,8 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   useEffect(() => {
     // Llama a la función cada vez que cambie un filtro o las facturas originales
     actualizarFacturasFiltradas();
-  }, [nrofactura, estadoSeleccionado, facturasOriginales]); // Dependencias
+  }, [nrofactura, estadoSeleccionado, buqueFiltro, facturasOriginales, escala]);
+  // Dependencias
 
   const handleNroFacturaChange = (e) => {
     setNroFactura(e.target.value); // Actualiza el estado
@@ -177,8 +184,9 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       params: { id_operador: operador }
     })
       .then((response) => {
-        setFacturas(response.data);
-        setFacturasOriginales(response.data);  // Guarda las facturas originales
+        const facturas = response.data;
+        setFacturas(facturas);
+        setFacturasOriginales(facturas); // Guardar las facturas originales
       })
       .catch((error) => {
         console.error('Error al obtener las facturas:', error);
@@ -228,6 +236,10 @@ const AprobarFacturas = ({ isLoggedIn }) => {
         alert('Hubo un error al intentar actualizar el estado del servicio.');
       }
     }
+  };
+
+  const handleBuqueFiltroChange = (e) => {
+    setBuqueFiltro(e.target.value);
   };
 
   const handleGuardarComentario = async () => {
@@ -368,6 +380,16 @@ const AprobarFacturas = ({ isLoggedIn }) => {
             <option value="Requiere NC">Requiere NC</option>
           </select>
         </div>
+        <div>
+          <label htmlFor="buqueFiltro">Buque:</label>
+          <input
+            type="text"
+            id="buqueFiltro"
+            value={buqueFiltro}
+            onChange={handleBuqueFiltroChange}
+            placeholder="Buscar por Buque"
+          />
+        </div>
 
         <h3 className='subtitulo-estandaraprobar'>Datos Factura</h3>
         <div>
@@ -394,7 +416,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           <input
             type="text"
             id="buque"
-            value={escala ? escala.buque : ''}
+            value={facturaActual ? facturaActual.buque : ''}
             readOnly
           />
         </div>
@@ -414,7 +436,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           <input
             type="text"
             id="fechaEscala"
-            value={escala ? escala.eta : ''}
+            value={facturaActual ? facturaActual.eta : ''}
             readOnly
           />
         </div>

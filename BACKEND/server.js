@@ -353,45 +353,49 @@ app.listen(5000, () => {
 
 // Endpoint para obtener las facturas y sus URLs
 app.get('/api/obtenerfacturas', (req, res) => {
-  const idOperador = req.query.id_operador; // Recibe el id del operador desde el frontend
-  console.log('Operador recibido:', idOperador); // Aquí es donde se realiza el debug
-  // Si se pasa el id_operador, filtrar las facturas basadas en la escala asociada y el operador
-  const queryEscalas = `
-    SELECT id
-    FROM itinerarios 
-    WHERE id_operador1 = ?;`;
+  const idOperador = req.query.id_operador; // Recibimos el id del operador
 
-  // Usamos la conexión para itinerarios para consultar la tabla itinerarios
-  connectionitinerarios.query(queryEscalas, [idOperador], (err, escalas) => {
+  if (!idOperador) {
+    return res.status(400).json({ error: 'El ID del operador es requerido' });
+  }
+
+  // Consulta para obtener las facturas junto con la información de las escalas
+  const query = `
+    SELECT 
+      f.idfacturas,
+      f.numero,
+      DATE(f.fecha) AS fecha,
+      f.moneda,
+      f.monto,
+      f.escala_asociada,
+      f.proveedor,
+      f.url_factura,
+      f.url_notacredito,
+      f.estado,
+      f.comentarios,
+      e.id AS escala_id,
+      DATE_FORMAT(e.eta, '%d-%m-%Y') AS eta,
+      l.nombre AS linea,
+      b.nombre AS buque,
+      p.nombre AS puerto,
+      o.nombre AS operador
+    FROM buquesinvoice.facturas f
+    LEFT JOIN itinerarios_prod.itinerarios e ON f.escala_asociada = e.id
+    LEFT JOIN itinerarios_prod.lineas l ON e.id_linea = l.id
+    LEFT JOIN itinerarios_prod.buques b ON e.id_buque = b.id
+    LEFT JOIN itinerarios_prod.puertos p ON e.id_puerto = p.id
+    LEFT JOIN itinerarios_prod.operadores o ON e.id_operador1 = o.id
+    WHERE e.id_operador1 = ?;
+  `;
+
+  // Ejecutar la consulta
+  connectionbuquesinvoice.query(query, [idOperador], (err, results) => {
     if (err) {
-      console.error('Error al obtener las escalas:', err);
-      return res.status(500).json({ error: 'Error al obtener las escalas' });
-    }
-    console.log('escalas recibido:', escalas); // Aquí es donde se realiza el debug
-    // Si no hay escalas asociadas al operador, devolver un array vacío
-    if (escalas.length === 0) {
-      return res.json([]); // No hay facturas si no hay escalas
+      console.error('Error al ejecutar la consulta combinada:', err);
+      return res.status(500).json({ error: 'Error al obtener las facturas y escalas' });
     }
 
-    // Obtener los números de las escalas
-    const escalaNumeros = escalas.map(escala => escala.id);
-
-    // Consulta SQL para obtener las facturas basadas en las escalas asociadas al operador
-    const queryFacturas = `
-      SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, comentarios
-      FROM facturas
-      WHERE escala_asociada IN (?);
-      `;
-
-    // Usamos la conexión para buquesinvoice para obtener las facturas
-    connectionbuquesinvoice.query(queryFacturas, [escalaNumeros], (err, results) => {
-      if (err) {
-        console.error('Error al obtener las facturas:', err);
-        return res.status(500).json({ error: 'Error al obtener las facturas' });
-      }
-      console.log('resultado:', results);
-      res.json(results); // Devolver las facturas que coinciden con las escalas del operador
-    });
+    res.json(results); // Enviar los datos combinados al cliente
   });
 });
 // Endpoint para obtener las facturas y sus URLs
@@ -762,22 +766,46 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
 
 // Endpoint para agregar un servicio a una escala
 app.post('/api/escalas/agregarservicio', (req, res) => {
-  const { id, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+  const { idEscala, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+  console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
 
-  if (!id || !servicio) {
+
+  if (!idEscala || !servicio) {
     return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
   }
 
   const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
 
-  connectionbuquesinvoice.query(query, [id, servicio], (err, results) => {
+  connectionbuquesinvoice.query(query, [idEscala, servicio], (err, results) => {
     if (err) {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });
     }
 
     // Respuesta indicando éxito en la adición del servicio
-    res.json({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
+    console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
+  });
+});
+
+app.post('/api/escalas/agregarservicio2', (req, res) => {
+  const { selectedEscalaId, serviciomodal } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+  console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
+
+
+  if (!selectedEscalaId || !serviciomodal) {
+    return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
+  }
+
+  const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+
+  connectionbuquesinvoice.query(query, [selectedEscalaId, serviciomodal], (err, results) => {
+    if (err) {
+      console.error('Error al agregar el servicio a la escala:', err);
+      return res.status(500).json({ error: 'Error al agregar el servicio' });
+    }
+
+    // Respuesta indicando éxito en la adición del servicio
+    console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
   });
 });
 
