@@ -361,7 +361,7 @@ app.get('/api/obtenerfacturas', (req, res) => {
     FROM itinerarios 
     WHERE id_operador1 = ?;`;
 
-  // Usamos la conexión para itinerarios (connectionitinerarios) para consultar la tabla itinerarios
+  // Usamos la conexión para itinerarios para consultar la tabla itinerarios
   connectionitinerarios.query(queryEscalas, [idOperador], (err, escalas) => {
     if (err) {
       console.error('Error al obtener las escalas:', err);
@@ -383,17 +383,61 @@ app.get('/api/obtenerfacturas', (req, res) => {
       WHERE escala_asociada IN (?);
       `;
 
-    // Usamos la conexión para buquesinvoice (connectionbuquesinvoice) para obtener las facturas
+    // Usamos la conexión para buquesinvoice para obtener las facturas
     connectionbuquesinvoice.query(queryFacturas, [escalaNumeros], (err, results) => {
       if (err) {
         console.error('Error al obtener las facturas:', err);
         return res.status(500).json({ error: 'Error al obtener las facturas' });
       }
-      console.log('resultado:', results); // Aquí es donde se realiza el debug
+      console.log('resultado:', results);
       res.json(results); // Devolver las facturas que coinciden con las escalas del operador
     });
   });
 });
+// Endpoint para obtener las facturas y sus URLs
+app.get('/api/obtenerfacturas2', (req, res) => {
+  const idOperador = req.query.id_operador; // Recibe el id del operador desde el frontend
+  console.log('Operador recibido:', idOperador); // Aquí es donde se realiza el debug
+  // Si se pasa el id_operador, filtrar las facturas basadas en la escala asociada al operador
+  const queryEscalas = `
+    SELECT id
+    FROM itinerarios 
+    WHERE id_operador1 = ?;`;
+
+  // Usamos la conexión para itinerarios para consultar la tabla itinerarios
+  connectionitinerarios.query(queryEscalas, [idOperador], (err, escalas) => {
+    if (err) {
+      console.error('Error al obtener las escalas:', err);
+      return res.status(500).json({ error: 'Error al obtener las escalas' });
+    }
+    console.log('escalas recibido:', escalas); // Aquí es donde se realiza el debug
+    // Si no hay escalas asociadas al operador, devolver un array vacío
+    if (escalas.length === 0) {
+      return res.json([]); // No hay facturas si no hay escalas
+    }
+
+    // Obtener los números de las escalas
+    const escalaNumeros = escalas.map(escala => escala.id);
+    console.log(escalaNumeros);
+    // Consulta SQL para obtener las facturas basadas en las escalas asociadas al operador
+    const queryFacturas = `
+      SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, comentarios
+      FROM facturas
+      WHERE escala_asociada IN (?);
+      `;
+
+    // Usamos la conexión para buquesinvoice para obtener las facturas
+    connectionbuquesinvoice.query(queryFacturas, [escalaNumeros], (err, results) => {
+      if (err) {
+        console.error('Error al obtener las facturas:', err);
+        return res.status(500).json({ error: 'Error al obtener las facturas' });
+      }
+      console.log('resultado:', results);
+      res.json(results); // Devolver las facturas que coinciden con las escalas del operador
+    });
+  });
+});
+
 //Endpoint para guardar los comentarios de la nc en la base
 app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
   const { idfactura } = req.params;
@@ -895,24 +939,6 @@ app.get('/api/viewescalaservicios/:id', (req, res) => {
     res.json({ servicios: results });
   });
 });
-//Endpoint para verificar si exuste una caratula
-app.get('/api/verificarcaratula/:idEscala', (req, res) => {
-  const idEscala = req.params.idEscala;
-  const query = 'SELECT url_caratula FROM caratulas WHERE id_escala = ?';
-
-  connectionbuquesinvoice.query(query, [idEscala], (error, results) => {
-    if (error) {
-      console.error('Error al verificar la carátula:', error);
-      return res.status(500).send('Error del servidor');
-    }
-
-    if (results.length > 0) {
-      res.json({ existe: true, url: results[0].url_caratula });
-    } else {
-      res.json({ existe: false });
-    }
-  });
-});
 
 
 // Función que envuelve la consulta en una promesa
@@ -927,9 +953,10 @@ const queryPromise = (query, connection) => {
     });
   });
 };
+
 app.get('/api/exportarpdf', async (req, res) => {
   try {
-    // Consulta SQL para obtener las facturas que no tienen `gia` marcado
+    // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado
     const queryFacturas = `
       SELECT 
         f.idfacturas, 
@@ -944,7 +971,7 @@ app.get('/api/exportarpdf', async (req, res) => {
         f.url_factura,
         f.url_notacredito
       FROM facturas f
-      WHERE f.gia = 0
+      WHERE f.gia = 0 AND f.estado = 'Aprobado'
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
@@ -998,11 +1025,11 @@ app.get('/api/exportarpdf', async (req, res) => {
       return acc;
     }, {});
 
-    // Crear un documento PDF usando pdf-lib
+    // Crear un documento PDF (pdf-lib)
     const pdfDocConNC = await PDFDocument.create();
     const font = pdfDocConNC.embedStandardFont('Helvetica');
 
-    // Recorrer las escalas y generar las páginas del PDF
+    // Recorrer las escalas y generar las páginas del PDF, (cada iteracion obtiene una escala y sus facturas)
     for (const escalaData of Object.values(escalasConFacturas)) {
       const escala = escalaData.escala;
       const facturas = escalaData.facturas;
@@ -1019,7 +1046,7 @@ app.get('/api/exportarpdf', async (req, res) => {
       pageConNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
       pageConNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
 
-      // Agregar facturas y notas de crédito al PDF
+      // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
       for (const factura of facturas) {
         if (factura.url_factura) {
           const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
@@ -1058,10 +1085,10 @@ app.get('/api/exportarpdf', async (req, res) => {
     res.status(500).json({ error: 'Error al generar el archivo PDF' });
   }
 });
-
+//Endpoint que genera el pdf sin notas de credito
 app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
-    // Consulta SQL para obtener las facturas que no tienen `gia` marcado
+    // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
       SELECT 
         f.idfacturas, 
@@ -1075,7 +1102,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
         f.gia,
         f.url_factura
       FROM facturas f
-      WHERE f.gia = 0
+      WHERE f.gia = 0 AND f.estado = 'Aprobado'
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
@@ -1133,7 +1160,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
     const pdfDocSinNC = await PDFDocument.create();
     const font = pdfDocSinNC.embedStandardFont('Helvetica');
 
-    // Array para guardar los id de las facturas procesadas
+    // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
     const facturasProcesadas = [];
 
     // Recorrer las escalas y generar las páginas del pdf
@@ -1161,7 +1188,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
           const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           pdfDocSinNC.addPage(facturaPdfPage);
-          
+
           // Guardar el ID de la factura para actualizar después
           facturasProcesadas.push(factura.idfacturas);
         }
@@ -1179,7 +1206,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       SET gia = 1
       WHERE idfacturas IN (${facturasProcesadas.join(',')});
     `;
-    
+
     await queryPromise(queryUpdateGia, connectionbuquesinvoice);
 
     // Enviar el PDF como respuesta para descarga
@@ -1195,6 +1222,133 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
     console.error('Error al generar el archivo PDF:', error);
     res.status(500).json({ error: 'Error al generar el archivo PDF' });
   }
+});
+
+
+// Endpoint para obtener las facturas pendientes
+app.get('/api/facturas/pendientes/:idOperador', (req, res) => {
+  const idOperador = req.params.idOperador;
+
+  // 1. Consultar todas las escalas asociadas al operador en la base de datos de itinerarios
+  const queryItinerarios = `
+      SELECT id
+      FROM itinerarios
+      WHERE id_operador1 = ?
+  `;
+
+  connectionitinerarios.query(queryItinerarios, [idOperador], (err, results) => {
+    if (err) {
+      console.error('Error al consultar itinerarios:', err);
+      return res.status(500).json({ error: 'Error al obtener los itinerarios' });
+    }
+
+    // Si no se encuentran escalas asociadas al operador
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas asociadas al operador' });
+    }
+
+    // Obtener los IDs de las escalas asociadas al operador
+    const escalas = results.map(result => result.id);
+
+    // 2. Consultar las facturas pendientes que tienen cualquiera de las escalas asociadas al operador
+    const queryFacturas = `
+          SELECT COUNT(idfacturas) AS pendientes
+          FROM facturas
+          WHERE escala_asociada IN (?) 
+          AND estado = 'Pendiente'
+      `;
+
+    // Ejecutar la consulta en la base de datos de facturas
+    connectionbuquesinvoice.query(queryFacturas, [escalas], (err, facturaResults) => {
+      if (err) {
+        console.error('Error en la consulta de facturas:', err);
+        return res.status(500).json({ error: 'Error al obtener las facturas pendientes' });
+      }
+
+      // Enviar el número de facturas pendientes
+      res.json({ pendientes: facturaResults[0].pendientes });
+    });
+  });
+});
+
+app.get('/api/escalas/pendientes/:idOperador', (req, res) => {
+  const idOperador = req.params.idOperador;
+
+  // 1. Consultar todas las escalas asociadas al operador en la base de datos de itinerarios
+  const queryItinerarios = `
+    SELECT 
+      itinerarios.id,
+      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+      lineas.nombre AS linea,
+      buques.nombre AS buque,
+      puertos.nombre AS puerto,
+      operadores.nombre AS operador,
+      itinerarios.id_linea,
+      itinerarios.id_buque,
+      itinerarios.id_puerto
+    FROM itinerarios
+    LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
+    LEFT JOIN buques ON itinerarios.id_buque = buques.id
+    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+    WHERE itinerarios.id_operador1 = ?
+    AND itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+    ORDER BY itinerarios.eta DESC
+  `;
+
+  connectionitinerarios.query(queryItinerarios, [idOperador], (err, itinerariosResults) => {
+    if (err) {
+      console.error('Error al consultar itinerarios:', err);
+      return res.status(500).json({ error: 'Error al obtener los itinerarios' });
+    }
+
+    if (itinerariosResults.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas asociadas al operador' });
+    }
+
+    // 2. Obtener las facturas pendientes para cada itinerario
+    const itinerariosConFacturas = [];
+
+    let processedCount = 0;
+    itinerariosResults.forEach((itinerario, index) => {
+      const idEscala = itinerario.id;
+
+      // Consulta para contar las facturas pendientes para cada escala
+      const queryFacturas = `
+        SELECT COUNT(idfacturas) AS pendientes
+        FROM facturas
+        WHERE escala_asociada = ? 
+        AND estado = 'Pendiente'
+      `;
+
+      connectionbuquesinvoice.query(queryFacturas, [idEscala], (err, facturaResults) => {
+        if (err) {
+          console.error('Error en la consulta de facturas:', err);
+          return res.status(500).json({ error: 'Error al obtener las facturas pendientes' });
+        }
+
+        // Si tiene facturas pendientes, agregamos la escala a la respuesta
+        if (facturaResults[0].pendientes > 0) {
+          itinerariosConFacturas.push({
+            id: itinerario.id,
+            eta: itinerario.eta,
+            linea: itinerario.linea,
+            buque: itinerario.buque,
+            puerto: itinerario.puerto,
+            operador: itinerario.operador,
+            facturasPendientes: facturaResults[0].pendientes,
+          });
+        }
+
+        processedCount++;
+
+        // Cuando todos los itinerarios han sido procesados, enviar la respuesta
+        if (processedCount === itinerariosResults.length) {
+          res.json(itinerariosConFacturas);
+        }
+      });
+    });
+  });
 });
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');

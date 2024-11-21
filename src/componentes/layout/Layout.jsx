@@ -14,6 +14,7 @@ import ViewFactura from '../facturas/ViewFactura';
 import ParametrosServicios from '../parametros/ParametrosServicios';
 import ParametrosPuertos from '../parametros/ParametrosPuertos';
 import RutaNoEncontrada from '../modales/RutaNoEncontrada';
+import IngresarFacturasMultipleEscala from '../facturas/IngresarFacturasMultipleEscala';
 
 function Layout({ isLoggedIn, handleLogin }) {
     const location = useLocation();
@@ -122,6 +123,16 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <IngresarFacturas isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/login" />
+                        )
+                    }
+                />
+                <Route
+                    path="/facturas/ingresarmultiple"
+                    element={
+                        isLoggedIn ? (
+                            <IngresarFacturasMultipleEscala isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/login" />
                         )

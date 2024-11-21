@@ -12,6 +12,7 @@ const PreviewEscalas = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [facturas, setFacturas] = useState([]);
   const [error, setError] = useState('');
+  const [loadingtabla, setLoadingTabla] = useState(true);
   //Estados para descargar pdf
   const [loading, setLoading] = useState(false);
   const [errorpdf, setErrorpdf] = useState(null);
@@ -33,6 +34,8 @@ const PreviewEscalas = () => {
     } catch (err) {
       console.error('Error al obtener facturas:', err);
       setError('No se pudieron cargar las facturas.');
+    } finally {
+      setLoadingTabla(false); // Desactivar indicador de carga
     }
   };
 
@@ -101,6 +104,11 @@ const PreviewEscalas = () => {
   const handlePageClick = (event) => {
     setCurrentPage(event.selected);
   };
+  const filteredFacturas = Array.isArray(facturas)
+    ? facturas.filter((row) =>
+      row.numero && row.numero.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    : [];
 
   const handleEliminar = (idfacturas, numero, monto) => {
     setIdaEliminar(idfacturas);
@@ -133,21 +141,19 @@ const PreviewEscalas = () => {
       setError('No se pudo eliminar la factura.');
     }
   };
+  if (loadingtabla) {
+    // Mostrar indicador mientras se cargan los datos
+    return <div className="loading-spinner"></div>;
+  }
 
-
-  const itemsPerPage = 8;
-  const filteredData = Array.isArray(facturas)
-    ? facturas.filter((row) =>
-      row.numero && row.numero.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    : [];
-
-  const pageCount = Math.ceil(filteredData.length / itemsPerPage);
-  const displayedItems = filteredData.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  if (error) {
+    // Mostrar error si ocurre
+    return <div className="error">{error}</div>;
+  }
 
   return (
     <div className="Contenedor_Principal">
-      <ToastContainer/>
+      <ToastContainer />
       <div className='titulo-estandar'><h1>Facturas</h1></div>
       <div className="table-container">
         <div className="search-bar">
@@ -170,7 +176,7 @@ const PreviewEscalas = () => {
           </button>
         </div>
         {error && <div className="error">{error}</div>}
-        <table className='tabla-clientes'>
+        <table className='tabla-facturas'>
           <thead>
             <tr>
               <th>ID</th>
@@ -186,7 +192,7 @@ const PreviewEscalas = () => {
             </tr>
           </thead>
           <tbody>
-            {displayedItems.map((row) => (
+            {filteredFacturas.map((row) => (
               <tr key={row.idfacturas}>
                 <td>{row.idfacturas}</td>
                 <td>{row.numero}</td>
@@ -210,18 +216,7 @@ const PreviewEscalas = () => {
             ))}
           </tbody>
         </table>
-        <ReactPaginate
-          previousLabel={"Anterior"}
-          nextLabel={"Siguiente"}
-          breakLabel={"..."}
-          breakClassName={"break-me"}
-          pageCount={pageCount}
-          marginPagesDisplayed={2}
-          pageRangeDisplayed={5}
-          onPageChange={handlePageClick}
-          containerClassName={"pagination"}
-          activeClassName={"active"}
-        />
+
       </div>
 
       {/* Modal para eliminar factura */}

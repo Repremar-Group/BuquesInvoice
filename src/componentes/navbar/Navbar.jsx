@@ -4,6 +4,9 @@ import { Link } from "react-router-dom";
 import logo from "../../img/LogoRepremar.png";
 
 const NavBar = () => {
+    const handleLogout = () => {
+        localStorage.removeItem('idOperador');
+    };
     return (
         <header className="navbar">
             <Link to="/home" className="logoPagina">
@@ -21,6 +24,7 @@ const NavBar = () => {
                     <div className="submenu">
                         <Link to="/facturas/aprobar" className="submenuItem">Aprobar</Link>
                         <Link to="/facturas/ingresar" className="submenuItem">Ingresar</Link>
+                        <Link to="/facturas/ingresarmultiple" className="submenuItem">Ingresar Multiple Escala</Link>
                     </div>
                 </div>
 
@@ -34,7 +38,11 @@ const NavBar = () => {
                     </div>
                 </div>
 
-                <Link to="/logout"><button className="botonNavBar">Salir</button></Link>
+                <Link to="/login">
+                    <button className="botonNavBar" onClick={handleLogout}>
+                        Salir
+                    </button>
+                </Link>
             </nav>
         </header>
     );

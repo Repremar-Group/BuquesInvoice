@@ -12,12 +12,12 @@ const LoginForm = ({ onLoginSuccess }) => {
     // Array de usuarios válidos
     const usuariosValidos = [
         { usuario: "admin", contraseña: "admin" },
-        { usuario: "jpgomez", contraseña: "jpg0mez1372" },
-        { usuario: "gdelossantos", contraseña: "gd3lossant0s41372" },
-        { usuario: "rbalbuena", contraseña: "rb4lbuen41372" },
-        { usuario: "lpatetta", contraseña: "lp4tet41372" },
-        { usuario: "tloustalet", contraseña: "tl0ust4let1372" },
-        { usuario: "idossantos", contraseña: "id0sant0s1372" },
+        { usuario: "jpgomez", contraseña: "jpg0mez1372", idoperador: 65 },
+        { usuario: "gdelossantos", contraseña: "gd3lossant0s41372", idoperador: 4 },
+        { usuario: "rbalbuena", contraseña: "rb4lbuen41372", idoperador: 73 },
+        { usuario: "lpatetta", contraseña: "lp4tet41372", idoperador: 74 },
+        { usuario: "tloustalet", contraseña: "tl0ust4let1372", idoperador: 67 },
+        { usuario: "idossantos", contraseña: "id0sant0s1372", idoperador: 66 },
         { usuario: "dremigio", contraseña: "dr3mig1o1372" },
         { usuario: "pporra", contraseña: "pp0rr41372" },
         { usuario: "jchaud", contraseña: "jc4ud1372" },
@@ -33,10 +33,13 @@ const LoginForm = ({ onLoginSuccess }) => {
         );
 
         if (usuarioEncontrado) {
-            onLoginSuccess(); // Llama a la función de login exitoso pasada desde el componente principal
+            // Solo almacenar idOperador si existe en el objeto del usuario
+            if (usuarioEncontrado.idoperador) {
+                localStorage.setItem('idOperador', usuarioEncontrado.idoperador);
+            }
+
+            onLoginSuccess();
             navigate('/home');
-
-
         } else {
             alert("Usuario o contraseña incorrectos");
         }
@@ -44,26 +47,26 @@ const LoginForm = ({ onLoginSuccess }) => {
 
     return (
         <div className='Login'>
-            <form className= 'formularioschicos' onSubmit={handleSubmit}>
+            <form className='formularioschicos' onSubmit={handleSubmit}>
                 <img src={logo} alt="Logo Cielosur" />
                 <div><br /></div>
                 <div className='input-box'>
-                    <input 
-                        type="text" 
-                        placeholder='Usuario' 
-                        onChange={e => setUsuario(e.target.value)} 
-                        value={usuario}  
-                        required 
+                    <input
+                        type="text"
+                        placeholder='Usuario'
+                        onChange={e => setUsuario(e.target.value)}
+                        value={usuario}
+                        required
                     />
                 </div>
 
                 <div className='input-box'>
-                    <input 
-                        type="password" 
-                        placeholder='Contraseña' 
-                        onChange={e => setContraseña(e.target.value)} 
-                        value={contraseña} 
-                        required 
+                    <input
+                        type="password"
+                        placeholder='Contraseña'
+                        onChange={e => setContraseña(e.target.value)}
+                        value={contraseña}
+                        required
                     />
                 </div>
 

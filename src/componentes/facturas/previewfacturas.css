@@ -26,7 +26,7 @@
 }
 
 .table-container {
-    width: 100%;
+    width: 1500px;
     /* Ajusta el ancho restando padding */
     max-width: 100%;
     /* Ajustamos el ancho máximo para que no exceda el ancho del viewport */
@@ -98,50 +98,58 @@
     color: gray;
 }
 
-.tabla-clientes th,
-.tabla-clientes td {
+.tabla-facturas th,
+.tabla-facturas td {
     padding: 12px 15px;
-    /* Espaciado interno en celdas */
     text-align: left;
-    /* Alinear texto a la izquierda */
     border: 1px solid #dddddd;
-    /* Bordes de celdas */
+
 }
 
-.tabla-clientes th {
+.tabla-facturas th {
     background-color: #143361;
-    /* Color de fondo de los encabezados */
     color: white;
-    /* Color de texto de los encabezados */
 }
 
-.tabla-clientes {
+.tabla-facturas {
     font-size: 1em;
-    /* Tamaño de fuente más pequeño */
     border-collapse: collapse;
-    /* Sin espacios entre celdas */
-    table-layout: fixed;
-    /* Establece anchos fijos para las columnas */
-    width: 100%;
-    /* Asegura que la tabla use el ancho completo */
+    table-layout: fixed; /* Asegura que las columnas tengan un ancho fijo */
+    width: 100%; /* La tabla ocupará el 100% del contenedor */
     max-height: 500px;
-    min-width: 1000px;
     overflow-y: auto;
-    /* Permite el desplazamiento vertical */
-    display: block;
-    /* Hace que la tabla se comporte como un bloque */
+    display: block; /* Hace que la tabla se comporte como un bloque para aplicar scroll */
     border-radius: 5px;
     margin: 20px 0;
-
-
 }
 
-.tabla-clientes tbody {
+.tabla-facturas tbody {
     overflow-y: auto;
-    /* Permite el desplazamiento vertical */
-
 }
 
+.tabla-facturas thead {
+    position: sticky;
+    top: 0;
+    background-color: #143361;
+    z-index: 1;
+}
+
+/* Estilo del scrollbar */
+.tabla-facturas::-webkit-scrollbar {
+    width: 10px; 
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+  
+.tabla-facturas::-webkit-scrollbar-thumb {
+    background-color: #143361;
+    border-radius: 5px;
+    border: 2px solid #f0f0f0;
+}
+  
+.tabla-facturas::-webkit-scrollbar-thumb:hover {
+    background-color: #4885e2;
+}
 
 th,
 td {
@@ -161,92 +169,72 @@ td {
 /* Anchos fijos para cada columna */
 th:nth-child(1),
 td:nth-child(1) {
-    width: 25%;
+    width: 2%;
+    text-align: center;
 }
 
-/* Razón social */
+
 th:nth-child(2),
 td:nth-child(2) {
-    width: 15%;
+    width: 10%;
+    text-align: center;
 }
 
-/* RUT */
+
 th:nth-child(3),
 td:nth-child(3) {
     width: 2%;
     text-align: center;
 }
 
-/* Id */
 th:nth-child(4),
 td:nth-child(4) {
     width: 3%;
     text-align: center;
 }
 
-/* País */
+
 th:nth-child(5),
 td:nth-child(5) {
-    width: 30%;
+    width: 10%;
+    text-align: center;
 }
 
-/* Email */
+
 th:nth-child(6),
 td:nth-child(6) {
     width: 10%;
+    text-align: center;
 }
 
-/* Tel */
+
 th:nth-child(7),
 td:nth-child(7) {
     width: 6%;
+    text-align: center;
+}
+th:nth-child(8),
+td:nth-child(8) {
+    width: 10%;
+    text-align: center;
+}
+th:nth-child(9),
+td:nth-child(9) {
+    width: 3%;
+    text-align: center;
+}
+th:nth-child(10),
+td:nth-child(10) {
+    width: 8%;
+    text-align: center;
 }
 
-/* Acciones */
 
 th {
     background-color: #f9f9f9;
 }
-
-
-
-.pagination {
-    display: flex;
-    justify-content: center;
-    /* Centra los elementos horizontalmente */
-    list-style: none;
-    padding: 0;
-    margin-top: 20px;
-    user-select: none;
-    /* Evita la selección de texto */
-}
-
-.pagination li {
-    transition: transform 0.2s ease;
-    /* Transición suave para el hover */
-    margin: 0 5px;
-}
-
-.pagination li.active {
-    font-weight: bold;
-    transform: scale(1.4);
-    /* Aumenta el tamaño al 110% */
-    color: white;
-    /* Color del texto para la página activa */
-    border-radius: 5px;
-    /* Bordes redondeados */
-}
-
-.pagination li a {
-    text-decoration: none;
-    padding: 8px 12px;
-    color: #143361;
-    /* Color por defecto */
-    cursor: pointer;
-}
-
-.pagination li a:hover {
-    color: #4986e2;
+.contenedor-tabla-viewfactura{
+    width: 1500px;
 }
 
 .modal-container {

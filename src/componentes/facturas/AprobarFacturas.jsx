@@ -173,7 +173,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     setFacturaActual(null);
     setEscala(null);  // Limpia los datos de la escala
 
-    axios.get('http://localhost:5000/api/obtenerfacturas', {
+    axios.get('http://localhost:5000/api/obtenerfacturas2', {
       params: { id_operador: operador }
     })
       .then((response) => {
