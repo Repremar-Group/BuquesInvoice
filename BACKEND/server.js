@@ -339,6 +339,9 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }
 
+
+  const port = process.env.PORT || 3000;
+
   // Esperar que se muevan los archivos y luego responder
   setTimeout(() => {
     res.json({
@@ -347,8 +350,8 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
-app.listen(5000, () => {
-  console.log('Servidor corriendo en el puerto 5000');
+app.listen(port, () => {
+  console.log('Servidor corriendo en el puerto ${port}');
 });
 
 // Endpoint para obtener las facturas y sus URLs
