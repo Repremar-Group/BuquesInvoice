@@ -4,6 +4,8 @@ import './Facturas.css'
 import axios from 'axios';
 import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
 import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ModificarFactura = ({ closeModal, Id }) => {
     const navigate = useNavigate();
@@ -53,15 +55,15 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
         } catch (error) {
             console.error('Error fetching client data:', error);
-            alert('Error al obtener los datos del cliente');
+            toast.error('Error al obtener los datos del cliente');
         }
     };
     const fetchServiciosAsociados = async (Id) => {
         try {
             const response = await axios.get(`http://localhost:5000/api/obtenerservicios/${Id}`);
-            const serviciosData = response.data;
-            console.log(serviciosData)
-            setServicios(serviciosData);  // Guardamos los servicios en el array
+            const servicios = response.data;
+            console.log(servicios)
+            setServicios(servicios);  // Guardamos los servicios en el array
             console.log(servicios);
         } catch (error) {
             console.error('Error fetching services:', error);
@@ -88,8 +90,13 @@ const ModificarFactura = ({ closeModal, Id }) => {
         }
     }
     const handleServicioChange = (e) => {
-        setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
-    };
+        const selectedServicio = e.target.value;
+        setNuevoServicio(prevState => ({
+          ...prevState,
+          servicio: selectedServicio
+        }));
+      };
+      
 
     //Estados para la busqeuda de proveedores
     const [searchTermProveedor, setSearchTermProveedor] = useState('');
@@ -167,28 +174,25 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
     // Estado para manejar los valores del formulario de servicio
     const [nuevoServicio, setNuevoServicio] = useState({
-        nombre: '',
+        servicio: '',
         estado: 'Pendiente', // Estado inicial
     });
     //---------------------------------------------------------------------------------------------------------------------------------
-    // Función para manejar el cambio en los inputs
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNuevoServicio({
-            ...nuevoServicio,
-            [name]: value,
-        });
-    };
+
 
     // Función para agregar un nuevo servicio al array
     const handleAgregarServicio = () => {
-        if (nuevoServicio.nombre) {
-            setServicios([...servicios, nuevoServicio]);
-            setNuevoServicio({ nombre: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
+        if (nuevoServicio.servicio) {
+          setServicios(prevServicios => {
+            const nuevosServicios = [...prevServicios, nuevoServicio];
+            console.log('servicios después de agregar', nuevosServicios);
+            return nuevosServicios;
+          });
+          setNuevoServicio({ servicio: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
         } else {
-            alert('Por favor, ingrese un nombre para el servicio');
+          toast.error('Por favor, Seleccione un servicio');
         }
-    };
+      };
 
     // Función para manejar la eliminación de un servicio
     const handleEliminarServicio = (index) => {
@@ -202,7 +206,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (file && file.type === "application/pdf") {
             setSelectedFileFactura(file);
         } else {
-            alert("Por favor, selecciona un archivo PDF.");
+            toast.error("Por favor, selecciona un archivo PDF.");
             event.target.value = null; // Resetea el input si no es PDF
         }
     };
@@ -213,7 +217,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (file && file.type === "application/pdf") {
             setSelectedFileNC(file);
         } else {
-            alert("Por favor, selecciona un archivo PDF.");
+            toast.error("Por favor, selecciona un archivo PDF.");
             event.target.value = null; // Resetea el input si no es PDF
         }
     };
@@ -286,12 +290,16 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 },
             });
 
-            alert("Factura modificada exitosamente");
-            closeModal();
+            toast.success("Factura modificada exitosamente");
+
+            // Retrasar el cierre del modal para permitir que el toast se muestre
+            setTimeout(() => {
+              closeModal();
+            }, 3000);
 
         } catch (error) {
             console.error("Error durante el proceso:", error);
-            alert("Error al modificar la factura");
+            toast.error("Error al modificar la factura");
         }
     };
 
@@ -423,8 +431,8 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                     <select
                                         id="servicio"
                                         name="servicio"
-                                        value={nuevoServicio.nombre}
                                         onChange={handleServicioChange}
+                                        value={nuevoServicio.servicio}
                                         onClick={() => {
                                             if (!isFetchedServicios) fetchServicios();
                                         }}
@@ -441,10 +449,10 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                 <select
                                     name="estado"
                                     value={nuevoServicio.estado}
-                                    onChange={handleInputChange}
+                                    readOnly
                                 >
                                     <option value="Pendiente">Pendiente</option>
-                                    <option value="Aprobado">Aprobado</option>
+                                    
                                 </select>
 
                                 <button className="btn-estandar" type="button" onClick={handleAgregarServicio}>Agregar Servicio</button>
@@ -501,6 +509,8 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 filteredProveedores={filteredProveedores}
                 handleSelectProveedor={handleSelectProveedor}
             />
+            <ToastContainer
+        />
         </div>
     );
 }

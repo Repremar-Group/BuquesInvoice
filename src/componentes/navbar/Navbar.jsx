@@ -6,6 +6,8 @@ import logo from "../../img/LogoRepremar.png";
 const NavBar = () => {
     const handleLogout = () => {
         localStorage.removeItem('idOperador');
+        localStorage.removeItem('rol');
+        localStorage.removeItem('usuario');
     };
     return (
         <header className="navbar">
@@ -24,7 +26,7 @@ const NavBar = () => {
                     <div className="submenu">
                         <Link to="/facturas/aprobar" className="submenuItem">Aprobar</Link>
                         <Link to="/facturas/ingresar" className="submenuItem">Ingresar</Link>
-                        <Link to="/facturas/ingresarmultiple" className="submenuItem">Ingresar Multiple Escala</Link>
+                        
                     </div>
                 </div>
 

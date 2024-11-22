@@ -37,9 +37,6 @@ const ModalBusquedaProveedores = ({ isOpen, closeModal, filteredProveedores, han
                         ) : (
                         <div>
                             <p className='p_modaltraerclientes'>No se encontro el Proveedor.</p>
-                            <Link to="/clientes/agregar">
-                                <button className='btn-estandar'>Crear Proveedor</button>
-                            </Link>
                         </div>
                     
         )}

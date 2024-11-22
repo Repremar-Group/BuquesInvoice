@@ -4,6 +4,8 @@ import './Facturas.css'
 import axios from 'axios';
 import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
 import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const IngresarFacturas = ({ isLoggedIn }) => {
   const navigate = useNavigate();
@@ -51,6 +53,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
   const handleServicioChange = (e) => {
     setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
+    console.log('este es l nuevo servicio', nuevoServicio)
   };
 
   //Estados para la busqeuda de proveedores
@@ -178,7 +181,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       setServicios([...servicios, nuevoServicio]);
       setNuevoServicio({ nombre: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
     } else {
-      alert('Por favor, ingrese un nombre para el servicio');
+      toast.error('Por favor, Seleccione un servicio');
     }
   };
 
@@ -223,7 +226,7 @@ const handleAgregarServicioEscala = async (e) => {
     if (file && file.type === "application/pdf") {
       setSelectedFileFactura(file);
     } else {
-      alert("Por favor, selecciona un archivo PDF.");
+      toast.error("Por favor, selecciona un archivo PDF.");
       event.target.value = null; // Resetea el input si no es PDF
     }
   };
@@ -234,7 +237,7 @@ const handleAgregarServicioEscala = async (e) => {
     if (file && file.type === "application/pdf") {
       setSelectedFileNC(file);
     } else {
-      alert("Por favor, selecciona un archivo PDF.");
+      toast.error("Por favor, selecciona un archivo PDF.");
       event.target.value = null; // Resetea el input si no es PDF
     }
   };
@@ -309,9 +312,9 @@ const handleAgregarServicioEscala = async (e) => {
         },
       });
 
-      alert("Factura ingresada exitosamente");
+      toast.success("Factura ingresada exitosamente");
     } catch (error) {
-      alert("Error durante el proceso");
+      toast.error("Error durante el proceso");
 
     }
   };
@@ -534,6 +537,8 @@ const handleAgregarServicioEscala = async (e) => {
         filteredProveedores={filteredProveedores}
         handleSelectProveedor={handleSelectProveedor}
       />
+      <ToastContainer
+        />
     </div>
   );
 }
