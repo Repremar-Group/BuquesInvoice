@@ -26,7 +26,7 @@ const NavBar = () => {
                     <div className="submenu">
                         <Link to="/facturas/aprobar" className="submenuItem">Aprobar</Link>
                         <Link to="/facturas/ingresar" className="submenuItem">Ingresar</Link>
-                        <Link to="/facturas/ingresarmultiple" className="submenuItem">Ingresar Multiple Escala</Link>
+                        
                     </div>
                 </div>
 

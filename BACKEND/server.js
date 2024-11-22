@@ -508,6 +508,12 @@ app.put('/api/actualizarestadoservicios/:id', (req, res) => {
 // Endpoint para verificar y actualizar el estado de la factura
 app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
   const { id } = req.params;
+  const { cambioestadouser, fechacambioestado } = req.body; 
+
+  // Verifica que los parámetros necesarios estén presentes
+  if (!cambioestadouser || !fechacambioestado) {
+    return res.status(400).json({ error: 'Faltan parámetros requeridos: cambioestadouser o fechacambioestado' });
+  }
 
   const queryServicios = `
     SELECT estado
@@ -539,11 +545,11 @@ app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
 
     const queryActualizarFactura = `
       UPDATE facturas
-      SET estado = ?
+      SET estado = ?, cambioestadouser = ?, fechacambioestado = ?
       WHERE idfacturas = ?
     `;
 
-    connectionbuquesinvoice.query(queryActualizarFactura, [nuevoEstadoFactura, id], (err, results) => {
+    connectionbuquesinvoice.query(queryActualizarFactura, [nuevoEstadoFactura, cambioestadouser, fechacambioestado, id], (err, results) => {
       if (err) {
         console.error('Error al actualizar el estado de la factura:', err);
         return res.status(500).json({ error: 'Error al actualizar el estado de la factura' });

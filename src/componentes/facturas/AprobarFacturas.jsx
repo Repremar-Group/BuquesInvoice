@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Facturas.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AprobarFacturas = ({ isLoggedIn }) => {
   const [facturas, setFacturas] = useState([]);
@@ -175,27 +177,42 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   };
   //Funcion para manejar el cambio de operador y obtener las factuars
   const handleOperadorSeleccionado = (operador) => {
-    setOperador(operador);
-    // Restablecer los estados relacionados con la factura actual y escala
-    setFacturaActual(null);
-    setEscala(null);  // Limpia los datos de la escala
-    setIndiceFacturaActual(0);
+    if (operador != 'nulo') {
+      setOperador(operador);
+      // Restablecer los estados relacionados con la factura actual y escala
+      setFacturaActual(null);
+      setEscala(null);  // Limpia los datos de la escala
+      setIndiceFacturaActual(0);
 
-    axios.get('http://localhost:5000/api/obtenerfacturas', {
-      params: { id_operador: operador }
-    })
-      .then((response) => {
-        const facturas = response.data;
-        setFacturas(facturas);
-        setFacturasOriginales(facturas); // Guardar las facturas originales
+      axios.get('http://localhost:5000/api/obtenerfacturas', {
+        params: { id_operador: operador }
       })
-      .catch((error) => {
-        console.error('Error al obtener las facturas:', error);
-      });
+        .then((response) => {
+          const facturas = response.data;
+          setFacturas(facturas);
+          setFacturasOriginales(facturas); // Guardar las facturas originales
+        })
+        .catch((error) => {
+          console.error('Error al obtener las facturas:', error);
+        });
+    }
+    else {
+      setOperador('');
+      setFacturaActual(null);
+      setEscala(null);  // Limpia los datos de la escala
+      setIndiceFacturaActual(0);
+      setFacturas([]);
+      setFacturasOriginales([]);
+      setServicios([])
+    }
+
   };
 
 
   const handleEstadoChangeServicio = async (idServicio, nuevoEstado) => {
+    const usuario = localStorage.getItem('usuario');
+    const fechaActual = new Date().toISOString().split('T')[0];
+
     if (nuevoEstado === 'Requiere NC') {
       // Abre el modal para ingresar el comentario si el estado es "Requiere NC"
       setIdServicioSeleccionado(idServicio);
@@ -212,7 +229,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
         );
 
         // Actualizamos el estado de la factura
-        await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`);
+        await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`, {
+          cambioestadouser: usuario,  // Enviar el usuario
+          fechacambioestado: fechaActual // Enviar la fecha
+        });
+
         const response = await axios.get(`http://localhost:5000/api/obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
 
         setFacturaActual(response.data);
@@ -231,10 +252,10 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           )
         );
 
-        alert(`Estado del servicio actualizado a ${nuevoEstado} y factura sincronizada.`);
+        toast.success(`Estado del servicio actualizado a ${nuevoEstado} y factura sincronizada.`);
       } catch (error) {
         console.error('Error al actualizar el estado del servicio:', error);
-        alert('Hubo un error al intentar actualizar el estado del servicio.');
+        toast.error('Hubo un error al intentar actualizar el estado del servicio.');
       }
     }
   };
@@ -244,8 +265,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   };
 
   const handleGuardarComentario = async () => {
+    const usuario = localStorage.getItem('usuario');
+    const fechaActual = new Date().toISOString().split('T')[0];
+
     if (!comentarios.trim()) {
-      alert('El comentario no puede estar vacío.');
+      toast.error('El comentario no puede estar vacío.');
       return; // Detiene la ejecución de la función si el comentario está vacío.
     }
     try {
@@ -263,7 +287,10 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       );
 
       // Actualizamos el estado de la factura
-      await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`);
+      await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`, {
+        cambioestadouser: usuario,  // Enviar el usuario
+        fechacambioestado: fechaActual // Enviar la fecha
+      });
       const response = await axios.get(`http://localhost:5000/api/obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
 
       // Verifica si la respuesta contiene los datos actualizados correctamente
@@ -287,16 +314,16 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           )
         );
 
-        alert('Comentario guardado y factura actualizada correctamente.');
+        toast.success('Comentario guardado y factura actualizada correctamente.');
 
         // Cierra el modal
         setIsModalOpenComentarios(false);
       } else {
-        alert('No se pudo obtener la factura actualizada.');
+        toast.error('No se pudo obtener la factura actualizada.');
       }
     } catch (error) {
       console.error('Error al guardar el comentario:', error);
-      alert('Hubo un error al guardar el comentario.');
+      toast.error('Hubo un error al guardar el comentario.');
     }
   };
 
@@ -348,7 +375,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
             value={operador}
             onChange={(e) => handleOperadorSeleccionado(e.target.value)}
           >
-            <option value="">Seleccione Operador</option>
+            <option value="nulo">Seleccione Operador</option>
             {operadores.map((operador) => (
               <option key={operador.id} value={operador.id}>
                 {operador.nombre}
@@ -456,7 +483,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           <input
             type="text"
             id="contadorFactura"
-            value={`${indiceFacturaActual+1} / ${facturas.length}`}
+            value={`${indiceFacturaActual + 1} / ${facturas.length}`}
             readOnly
           />
         </div>
@@ -521,6 +548,8 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           </div>
         </div>
       )}
+      <ToastContainer
+      />
     </div>
   );
 };

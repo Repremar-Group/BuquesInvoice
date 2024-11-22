@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import './viewfactura.css';
 import axios from 'axios';
 import { Link } from "react-router-dom";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Componente para mostrar detalles generales de la escala
 const General = ({ factura, escala }) => {
@@ -218,7 +220,7 @@ const ViewFactura = () => {
         setLoading(false);
       } catch (error) {
         console.error('Error al obtener los detalles de la factura:', error);
-        alert('No se pudieron cargar los datos de la factura');
+        toast.error('No se pudieron cargar los datos de la factura');
         setLoading(false);
       }
     };
@@ -294,6 +296,8 @@ const ViewFactura = () => {
         {activeTab === 'general' && <General factura={factura} escala={escala} />}
         {activeTab === 'escala' && <Escala escalamostrar={escala} />}
       </div>
+      <ToastContainer
+        />
     </div>
   );
 };
