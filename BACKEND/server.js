@@ -30,7 +30,7 @@ connectionbuquesinvoice.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL1');
 });
 
 // Configura la conexión a tu servidor MySQL flexible de Azure
@@ -48,7 +48,7 @@ connectionitinerarios.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL2');
 });
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
