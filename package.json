@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build-prod":"cat src/environment.prod.jsx > src/environment.jsx && vite build",
+    "build": "cat src/environment.local.jsx > src/environment.jsx && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

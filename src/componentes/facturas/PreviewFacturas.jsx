@@ -5,6 +5,7 @@ import './previewfacturas.css';
 import { Link } from "react-router-dom";
 import ModificarFactura from './ModificarFactura';
 import { toast, ToastContainer } from 'react-toastify';
+import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
 
 const PreviewEscalas = () => {
@@ -28,7 +29,7 @@ const PreviewEscalas = () => {
   // Función para obtener las facturas
   const fetchFacturas = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/previewfacturas');
+      const response = await axios.get(`${environment.API_URL}previewfacturas`);
       console.log(response.data);
       setFacturas(response.data);
     } catch (err) {
@@ -51,7 +52,7 @@ const PreviewEscalas = () => {
 
     try {
       // Realizar la primera solicitud (facturas con notas de crédito)
-      const responseWithNC = await axios.get('http://localhost:5000/api/exportarpdf', {
+      const responseWithNC = await axios.get(`${environment.API_URL}exportarpdf`, {
         responseType: 'blob',
       });
 
@@ -66,7 +67,7 @@ const PreviewEscalas = () => {
       window.URL.revokeObjectURL(urlWithNC);
 
       // Realizar la segunda solicitud (facturas sin notas de crédito)
-      const responseWithoutNC = await axios.get('http://localhost:5000/api/exportarpdfsinnotas', {
+      const responseWithoutNC = await axios.get(`${environment.API_URL}exportarpdfsinnotas`, {
         responseType: 'blob',
       });
 
@@ -133,7 +134,7 @@ const PreviewEscalas = () => {
 
   const confirmEliminar = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/eliminarfactura/${idaeliminar}`);
+      await axios.delete(`${environment.API_URL}eliminarfactura/${idaeliminar}`);
       fetchFacturas();
       closeModalEliminar;  // Cerrar el modal después de eliminar
     } catch (err) {

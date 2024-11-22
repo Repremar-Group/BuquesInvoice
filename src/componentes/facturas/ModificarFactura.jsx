@@ -5,6 +5,7 @@ import axios from 'axios';
 import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
 import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
 import { toast, ToastContainer } from 'react-toastify';
+import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ModificarFactura = ({ closeModal, Id }) => {
@@ -33,7 +34,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
     const fetchfacturaData = async (Id) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/obtenerfactura/${Id}`);
+            const response = await axios.get(`${environment.API_URL}obtenerfactura/${Id}`);
             const facturaData = response.data;
             console.log(facturaData)
             // Establecer los datos en el estado del componente
@@ -60,7 +61,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
     };
     const fetchServiciosAsociados = async (Id) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/obtenerservicios/${Id}`);
+            const response = await axios.get(`${environment.API_URL}obtenerservicios/${Id}`);
             const servicios = response.data;
             console.log(servicios)
             setServicios(servicios);  // Guardamos los servicios en el array
@@ -81,7 +82,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const fetchServicios = async () => {
         try {
             console.log(escalasociadaid);
-            const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${searchTermEscalaAsociada}`);
+            const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${searchTermEscalaAsociada}`);
             console.log(response.data);
             setServiciosLista(response.data);
             setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
@@ -111,7 +112,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (e.key === 'Enter' && searchTermProveedor.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/obtenerproveedor?search=${searchTermProveedor}`);
+                const response = await axios.get(`${environment.API_URL}obtenerproveedor?search=${searchTermProveedor}`);
                 setFilteredProveedores(response.data);
                 setIsModalOpenProveedor(true); // Abre el modal con los resultados
             } catch (error) {
@@ -146,7 +147,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (e.key === 'Enter' && searchTermEscalaAsociada.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/buscarescalaasociada`, {
+                const response = await axios.get(`${environment.API_URL}buscarescalaasociada`, {
                     params: { searchTermEscalaAsociada },
                 });
                 setFilteredEscalas(response.data);
@@ -242,7 +243,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 const formData = new FormData();
                 formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
 
-                const fileResponse = await axios.post('http://localhost:5000/api/Agregarfactura', formData, {
+                const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -256,7 +257,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 const formDataNC = new FormData();
                 formDataNC.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
 
-                const fileResponseNC = await axios.post('http://localhost:5000/api/Agregarfactura', formDataNC, {
+                const fileResponseNC = await axios.post(`${environment.API_URL}Agregarfactura`, formDataNC, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -284,7 +285,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
             };
 
             // Enviar la solicitud para actualizar la factura
-            const facturaResponse = await axios.put('http://localhost:5000/api/modificarfactura', facturaData, {
+            const facturaResponse = await axios.put(`${environment.API_URL}modificarfactura`, facturaData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 import 'react-toastify/dist/ReactToastify.css'; // Importar los estilos de toastify
+import { environment } from '../../environment';
 import './home.css';
 
 const Home = () => {
@@ -35,7 +36,7 @@ const Home = () => {
     if (idOperador) {
       // Obtener facturas pendientes
       axios
-        .get(`http://localhost:5000/api/facturas/pendientes/${idOperador}`)
+        .get(`${environment.API_URL}facturas/pendientes/${idOperador}`)
         .then((response) => {
           const pendientes = response.data.pendientes;
 
@@ -59,7 +60,7 @@ const Home = () => {
 
       // Obtener escalas pendientes
       axios
-        .get(`http://localhost:5000/api/escalas/pendientes/${idOperador}`)
+        .get(`${environment.API_URL}escalas/pendientes/${idOperador}`)
         .then((response) => {
           setEscalas(response.data);
         })
@@ -72,7 +73,7 @@ const Home = () => {
     const rol = localStorage.getItem('rol');
     if (rol === 'contable') {
       axios
-        .get('http://localhost:5000/api/facturas/requierenc')
+        .get(`${environment.API_URL}facturas/requierenc`)
         .then((response) => {
           setFacturasRequiereNC(response.data);
           console.log(response.data);
@@ -93,7 +94,7 @@ const Home = () => {
       const fechareclamadonc = new Date().toISOString();
 
       // Hacer la solicitud PATCH al servidor
-      await axios.patch(`http://localhost:5000/api/facturas/${idfacturas}/reclamadonc`, {
+      await axios.patch(`${environment.API_URL}facturas/${idfacturas}/reclamadonc`, {
         reclamadonc: checked ? 1 : 0,
         ultimoreclamadoncuser,
         fechareclamadonc,

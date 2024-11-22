@@ -4,6 +4,7 @@ import './viewfactura.css';
 import axios from 'axios';
 import { Link } from "react-router-dom";
 import { toast, ToastContainer } from 'react-toastify';
+import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Componente para mostrar detalles generales de la escala
@@ -203,7 +204,7 @@ const ViewFactura = () => {
   useEffect(() => {
     const fetchFactura = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/obtenerfactura/${id}`);
+        const response = await axios.get(`${environment.API_URL}obtenerfactura/${id}`);
         const facturaData = response.data.factura;
 
         // Verificar si la fecha existe y formatearla a DD-MM-YYYY
@@ -236,7 +237,7 @@ const ViewFactura = () => {
       const obtenerEscala = async () => {
         try {
           // Hacemos una solicitud a previewescalas para obtener las escalas
-          const response = await axios.get('http://localhost:5000/api/previewescalas');
+          const response = await axios.get(`${environment.API_URL}previewescalas`);
           console.log('Escalas recibidas:', response.data);  // Verifica que los datos están llegando correctamente
 
           // Filtrar la escala que coincide con el id_escala de la factura
