@@ -340,7 +340,7 @@ app.post('/api/Agregarfactura', (req, res) => {
   }
 
 
-  const port = process.env.PORT || 3000;
+ 
 
   // Esperar que se muevan los archivos y luego responder
   setTimeout(() => {
@@ -350,6 +350,9 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
+
+ const port = process.env.PORT || 3000;
+
 app.listen(port, () => {
   console.log('Servidor corriendo en el puerto ${port}');
 });
