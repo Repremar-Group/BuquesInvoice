@@ -12,10 +12,12 @@ const Home = () => {
   const navigate = useNavigate();
   const [modalVisible, setModalVisible] = useState(false);
   const [comentarios, setComentarios] = useState('');
+  const [urlfactura, setUrlFactura] = useState('');
 
 
-  const openModal = (comentarios) => {
+  const openModal = (comentarios, factura) => {
     setComentarios(comentarios);
+    setUrlFactura(factura);
     setModalVisible(true);
   };
 
@@ -62,6 +64,7 @@ const Home = () => {
         .get(`http://localhost:5000/api/escalas/pendientes/${idOperador}`)
         .then((response) => {
           setEscalas(response.data);
+          console.log(response.data);
         })
         .catch((error) => {
           console.error('Error al obtener las escalas pendientes:', error);
@@ -99,19 +102,15 @@ const Home = () => {
         fechareclamadonc,
       });
 
-      // Actualizar el estado local de las facturas
-      setFacturasRequiereNC((prevFacturas) =>
-        prevFacturas.map((factura) =>
-          factura.idfacturas === idfacturas
-            ? {
-              ...factura,
-              reclamadonc: checked ? 1 : 0,
-              ultimoreclamadoncuser,
-              fechareclamadonc,
-            }
-            : factura
-        )
-      );
+      axios
+        .get('http://localhost:5000/api/facturas/requierenc')
+        .then((response) => {
+          setFacturasRequiereNC(response.data);
+          console.log(response.data);
+        })
+        .catch((error) => {
+          console.error('Error al obtener las facturas requiere NC:', error);
+        });
 
       // Notificar al usuario
       toast.success('Factura actualizada correctamente.', {
@@ -138,8 +137,8 @@ const Home = () => {
 
         {/* Tabla de escalas pendientes */}
         {escalas.length > 0 ? (
-          <div className="table-container">
-            <table className="home-table">
+          <div className="table-container-ops">
+            <table className="ops-table">
               <thead>
                 <tr>
                   <th>Buque</th>
@@ -150,7 +149,10 @@ const Home = () => {
               </thead>
               <tbody>
                 {escalas.map((escala) => (
-                  <tr key={escala.id}>
+                  <tr
+                    key={escala.id}
+                    className={escala.esurgente !== null ? "urgente" : ""}
+                  >
                     <td>{escala.buque}</td>
                     <td>{escala.eta}</td>
                     <td>{escala.puerto}</td>
@@ -182,6 +184,8 @@ const Home = () => {
 
   // Renderizar las facturas si el rol es contable
   if (rol === 'contable') {
+
+
     return (
       <div className="home-container">
         <div className="home-header">
@@ -199,35 +203,36 @@ const Home = () => {
                   <th>Monto</th>
                   <th>Proveedor</th>
                   <th>Comentarios</th>
-                  <th>Reclamado NC</th>
                 </tr>
               </thead>
               <tbody>
-                {facturasRequiereNC.map((factura) => (
-                  <tr key={factura.idfacturas}>
-                    <td>{factura.numero}</td>
-                    <td>{factura.fecha}</td>
-                    <td>{factura.moneda}</td>
-                    <td>{factura.monto}</td>
-                    <td>{factura.proveedor}</td>
-                    <td><button
-                      className="action-button"
-                      onClick={() => openModal(factura.comentarios)}
-                    >
-                      📃
-                    </button></td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={factura.reclamadonc === 1}
-                        disabled={factura.reclamadonc === 1}
-                        onChange={(e) =>
-                          handleCheckboxChange(factura.idfacturas, e.target.checked)
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {facturasRequiereNC
+                  .sort((a, b) => {
+                    // Ordenar primero por reclamadonc (0 arriba, 1 abajo)
+                    if (a.reclamadonc !== b.reclamadonc) {
+                      return a.reclamadonc - b.reclamadonc;
+                    }
+                    // Si reclamadonc es igual, ordenar por fecha (descendente)
+                    return new Date(a.fecha) - new Date(b.fecha);
+                  })
+                  .map((factura) => (
+                    <tr key={factura.idfacturas}>
+                      <td>{factura.numero}</td>
+                      <td>{factura.fecha}</td>
+                      <td>{factura.moneda}</td>
+                      <td>{factura.monto}</td>
+                      <td>{factura.proveedor}</td>
+                      <td>
+                        <button
+                          className="action-button"
+                          onClick={() => openModal(factura.comentarios, factura.url_factura)}
+                        >
+                          📃
+                        </button>
+                      </td>
+
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -237,19 +242,141 @@ const Home = () => {
           </p>
         )}
         {modalVisible && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Comentarios</h2>
-            <p>{comentarios}</p>
+          <div className="modal-overlay" onClick={closeModal}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <strong>Comentarios:</strong> {comentarios}
+              <h2>Factura</h2>
+              <embed
+                src={urlfactura}
+                type="application/pdf"
+                width="100%"
+                height="750px"
+                style={{ border: 'none' }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
         <ToastContainer
         />
       </div>
-      
+
     );
-    
+
+  }
+  if (rol === 'liquidacion') {
+    const [escalas, setEscalas] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    // Hacer la solicitud al endpoint para obtener los datos
+    const fetchEscalas = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:5000/api/obtenerprogresoescalas');
+        setEscalas(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Error al obtener los datos de escalas:', error);
+      }finally {
+        setIsLoading(false); // Desactivar spinner cuando la solicitud finalice
+      }
+    };
+
+    useEffect(() => {
+      fetchEscalas(); // Obtener las escalas cuando el componente se monta
+    }, []);
+
+    const calcularProgreso = (totalServicios, serviciosFacturados) => {
+      if (totalServicios === 0) return 0;
+      return (serviciosFacturados / totalServicios) * 100;
+    };
+
+    // Función para convertir fecha DD/MM/YYYY a YYYY-MM-DD
+    const convertirFecha = (fecha) => {
+      const [dia, mes, anio] = fecha.split('/');
+      return `${anio}-${mes}-${dia}`;
+    };
+
+    // Ordenar las escalas por la fecha ETA antes de mostrarlas
+    const escalasOrdenadas = escalas.sort((a, b) => {
+      const fechaA = new Date(convertirFecha(a.eta));
+      const fechaB = new Date(convertirFecha(b.eta));
+      return fechaB - fechaA;
+    });
+
+    const handleUrgenteChange = async (escalaId, esUrgente) => {
+      try {
+        // Hacer una solicitud POST o PUT al backend para actualizar el estado de urgencia
+        await axios.post('http://localhost:5000/api/actualizarurgencia', {
+          idescala: escalaId,
+          esurgente: esUrgente ? 1 : 0, // 1 para urgente, 0 para no urgente
+        });
+
+        // Actualizar la lista de escalas después de cambiar el estado de urgencia
+        fetchEscalas();
+
+        // Confirmación visual o mensaje de éxito (opcional)
+        toast.success(`El estado de urgencia para la escala ${escalaId} se actualizó a ${esUrgente ? 'Urgente' : 'No Urgente'}`);
+
+      } catch (error) {
+        console.error('Error al actualizar el estado de urgencia:', error);
+        toast.error('Hubo un problema al actualizar el estado de urgencia.');
+      }
+    };
+    return (
+      <div>
+        {isLoading ? (
+          <div className="loading-spinner">
+            
+          </div>
+        ) : (
+          <div className="contenedortablaescalaliquidacion">
+            <h2>Liquidación de Escalas</h2>
+            <table className="escala-table-liquidacion">
+              <thead>
+                <tr>
+                  <th>Buque</th>
+                  <th>ETA</th>
+                  <th>Progreso</th>
+                  <th>Urgente</th>
+                </tr>
+              </thead>
+              <tbody>
+                {escalasOrdenadas.map((escala) => (
+                  <tr key={escala.escala_id}>
+                    <td>{escala.barco}</td>
+                    <td>{escala.eta}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '100px', backgroundColor: '#f3f3f3', borderRadius: '10px' }}>
+                          <div
+                            style={{
+                              width: `${calcularProgreso(escala.total_servicios, escala.total_servicios_facturados)}%`,
+                              height: '20px',
+                              backgroundColor: '#4caf50',
+                              borderRadius: '10px',
+                            }}
+                          />
+                        </div>
+                        <p style={{ margin: '0', whiteSpace: 'nowrap' }}>
+                          {escala.total_servicios_facturados}/{escala.total_servicios}
+                        </p>
+                      </div>
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={escala.total_urgente === 1}
+                        onChange={(e) => handleUrgenteChange(escala.escala_id, e.target.checked)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <ToastContainer />
+      </div>
+    );
   }
 
   return null;

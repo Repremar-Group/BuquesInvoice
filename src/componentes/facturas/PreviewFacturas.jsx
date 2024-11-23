@@ -51,7 +51,7 @@ const PreviewEscalas = () => {
 
     try {
       // Realizar la primera solicitud (facturas con notas de crédito)
-      const responseWithNC = await axios.get('http://localhost:5000/api/exportarpdf', {
+      const responseWithNC = await axios.get('http://localhost:5000/api/exportarpdfsinnotas', {
         responseType: 'blob',
       });
 
@@ -59,14 +59,14 @@ const PreviewEscalas = () => {
       const urlWithNC = window.URL.createObjectURL(responseWithNC.data);
       const linkWithNC = document.createElement('a');
       linkWithNC.href = urlWithNC;
-      linkWithNC.setAttribute('download', 'facturas_con_nc.pdf');
+      linkWithNC.setAttribute('download', 'facturas_sin_nc.pdf');
       document.body.appendChild(linkWithNC);
       linkWithNC.click();
       linkWithNC.parentNode.removeChild(linkWithNC);
       window.URL.revokeObjectURL(urlWithNC);
 
       // Realizar la segunda solicitud (facturas sin notas de crédito)
-      const responseWithoutNC = await axios.get('http://localhost:5000/api/exportarpdfsinnotas', {
+      const responseWithoutNC = await axios.get('http://localhost:5000/api/exportarpdfconnotas', {
         responseType: 'blob',
       });
 
@@ -74,7 +74,7 @@ const PreviewEscalas = () => {
       const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
       const linkWithoutNC = document.createElement('a');
       linkWithoutNC.href = urlWithoutNC;
-      linkWithoutNC.setAttribute('download', 'facturas_sin_nc.pdf');
+      linkWithoutNC.setAttribute('download', 'facturas_con_nc.pdf');
       document.body.appendChild(linkWithoutNC);
       linkWithoutNC.click();
       linkWithoutNC.parentNode.removeChild(linkWithoutNC);
