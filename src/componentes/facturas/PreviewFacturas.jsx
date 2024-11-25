@@ -67,7 +67,9 @@ const PreviewEscalas = () => {
       window.URL.revokeObjectURL(urlWithNC);
 
       // Realizar la segunda solicitud (facturas sin notas de crédito)
+      const usuario = localStorage.getItem('usuario');
       const responseWithoutNC = await axios.get(`${environment.API_URL}exportarpdfsinnotas`, {
+        params: { usuario }, // Pasar el usuario como parámetro
         responseType: 'blob',
       });
 

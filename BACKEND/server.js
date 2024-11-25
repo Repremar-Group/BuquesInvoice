@@ -59,7 +59,7 @@ app.get('/api/obtenerfactura/:id', (req, res) => {
   const { id } = req.params;
   console.log(`ID recibido en el endpoint: ${id}`);
   const query = `
-    SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, 
+    SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor,
            url_factura, url_notacredito, estado, gia, pre_aprobado, comentarios
     FROM facturas
     WHERE idfacturas = ?
@@ -104,8 +104,8 @@ app.post('/api/insertardatosfactura', (req, res) => {
 
     // Insertar la factura
     const sqlFactura = `
-      INSERT INTO facturas 
-      (numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado) 
+      INSERT INTO facturas
+      (numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const valuesFactura = [numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado];
@@ -122,7 +122,7 @@ app.post('/api/insertardatosfactura', (req, res) => {
 
       // Insertar los servicios asociados
       const sqlServicios = `
-        INSERT INTO serviciosfacturas (nombre, estado, idfactura) 
+        INSERT INTO serviciosfacturas (nombre, estado, idfactura)
         VALUES ?
       `;
       const serviciosValues = servicios.map(servicio => [
@@ -170,6 +170,7 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
     if (err) {
       return res.status(500).json({ error: 'Error en la consulta de servicios' });
     }
+    console.log('Servicios: ', results.length);
     res.json(results); // Devuelve los servicios encontrados
   });
 });
@@ -188,19 +189,19 @@ app.get('/api/obtenerproveedor', (req, res) => {
 });
 
 
-//Endpoint para obtener el listado de facturas 
+//Endpoint para obtener el listado de facturas
 app.get('/api/previewfacturas', (req, res) => {
   // Consulta SQL para obtener las facturas y sus datos relacionados
   const query = `
-  SELECT 
-    idfacturas, 
-    numero, 
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
-    moneda, 
-    monto, 
-    escala_asociada, 
-    proveedor, 
-    estado, 
+  SELECT
+    idfacturas,
+    numero,
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
+    moneda,
+    monto,
+    escala_asociada,
+    proveedor,
+    estado,
     gia,
     url_factura,
     url_notacredito
@@ -230,7 +231,7 @@ app.get('/api/buscarescalaasociada', (req, res) => {
 
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada, filtrado por buque
   const query = `
-    SELECT 
+    SELECT
   itinerarios.id,
   itinerarios.id_puerto,
   DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
@@ -269,7 +270,7 @@ ORDER BY itinerarios.eta DESC;
 app.get('/api/previewescalas', (req, res) => {
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada
   const query = `
-      SELECT 
+      SELECT
         itinerarios.id,
         DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
         lineas.nombre AS linea,
@@ -339,9 +340,6 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }
 
-
- 
-
   // Esperar que se muevan los archivos y luego responder
   setTimeout(() => {
     res.json({
@@ -367,7 +365,7 @@ app.get('/api/obtenerfacturas', (req, res) => {
 
   // Consulta para obtener las facturas junto con la información de las escalas
   const query = `
-    SELECT 
+    SELECT
       f.idfacturas,
       f.numero,
       DATE(f.fecha) AS fecha,
@@ -411,7 +409,7 @@ app.get('/api/obtenerfacturas2', (req, res) => {
   // Si se pasa el id_operador, filtrar las facturas basadas en la escala asociada al operador
   const queryEscalas = `
     SELECT id
-    FROM itinerarios 
+    FROM itinerarios
     WHERE id_operador1 = ?;`;
 
   // Usamos la conexión para itinerarios para consultar la tabla itinerarios
@@ -468,7 +466,7 @@ app.get('/api/obtenerservicios/:idfactura', (req, res) => {
   const { idfactura } = req.params;
 
   const query = `
-    SELECT 
+    SELECT
       idserviciosfacturas AS id,
       nombre AS servicio,
       estado
@@ -514,7 +512,7 @@ app.put('/api/actualizarestadoservicios/:id', (req, res) => {
 // Endpoint para verificar y actualizar el estado de la factura
 app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
   const { id } = req.params;
-  const { cambioestadouser, fechacambioestado } = req.body; 
+  const { cambioestadouser, fechacambioestado } = req.body;
 
   // Verifica que los parámetros necesarios estén presentes
   if (!cambioestadouser || !fechacambioestado) {
@@ -831,14 +829,14 @@ app.get('/api/viewescalafacturas/:id', (req, res) => {
 
   const query = `
     SELECT
-    idfacturas, 
-    numero, 
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
-    moneda, 
-    monto, 
-    escala_asociada, 
-    proveedor, 
-    estado, 
+    idfacturas,
+    numero,
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
+    moneda,
+    monto,
+    escala_asociada,
+    proveedor,
+    estado,
     gia,
     url_factura
     FROM facturas
@@ -928,32 +926,32 @@ app.get('/api/viewescalaservicios/:id', (req, res) => {
   console.log(`ID de escala recibido: ${id}`);
 
   const query = `
-    SELECT 
+    SELECT
         sf.nombre AS servicio,
         sf.estado AS estado_servicio,
         f.numero AS factura,
         f.idfacturas AS nro_factura,
         f.estado AS estado_factura,
         f.url_factura AS pdf
-    FROM 
+    FROM
         facturas f
-    INNER JOIN 
+    INNER JOIN
         serviciosfacturas sf ON f.idfacturas = sf.idfactura
-    INNER JOIN 
+    INNER JOIN
         serviciosescalas se ON se.nombre = sf.nombre AND se.idescala = ?
-    WHERE 
+    WHERE
         f.escala_asociada = ?
     UNION ALL
-    SELECT 
+    SELECT
         se.nombre AS servicio,
         'Pendiente' AS estado_servicio,
         NULL AS factura,
         NULL AS nro_factura,
         'Pendiente' AS estado_factura,
         NULL AS pdf
-    FROM 
+    FROM
         serviciosescalas se
-    WHERE 
+    WHERE
         se.idescala = ?
         AND se.nombre NOT IN (
             SELECT sf.nombre
@@ -998,15 +996,15 @@ app.get('/api/exportarpdf', async (req, res) => {
   try {
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado
     const queryFacturas = `
-      SELECT 
-        f.idfacturas, 
-        f.numero, 
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
-        f.moneda, 
-        f.monto, 
-        f.escala_asociada, 
-        f.proveedor, 
-        f.estado, 
+      SELECT
+        f.idfacturas,
+        f.numero,
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
+        f.moneda,
+        f.monto,
+        f.escala_asociada,
+        f.proveedor,
+        f.estado,
         f.gia,
         f.url_factura,
         f.url_notacredito
@@ -1026,7 +1024,7 @@ app.get('/api/exportarpdf', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT 
+      SELECT
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1128,17 +1126,22 @@ app.get('/api/exportarpdf', async (req, res) => {
 //Endpoint que genera el pdf sin notas de credito
 app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
+    const { usuario } = req.query; // Obtener el usuario del parámetro
+
+    if (!usuario) {
+      return res.status(400).json({ error: 'El parámetro usuario es obligatorio.' });
+    }
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
-      SELECT 
-        f.idfacturas, 
-        f.numero, 
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
-        f.moneda, 
-        f.monto, 
-        f.escala_asociada, 
-        f.proveedor, 
-        f.estado, 
+      SELECT
+        f.idfacturas,
+        f.numero,
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
+        f.moneda,
+        f.monto,
+        f.escala_asociada,
+        f.proveedor,
+        f.estado,
         f.gia,
         f.url_factura
       FROM facturas f
@@ -1146,7 +1149,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
-    // Realizar la consulta a la base de datos 
+    // Realizar la consulta a la base de datos
     const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
     if (!Array.isArray(facturas) || facturas.length === 0) {
       return res.status(404).json({ error: 'No hay facturas para exportar.' });
@@ -1157,7 +1160,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT 
+      SELECT
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1235,20 +1238,22 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       }
     }
 
-    // Guardar el archivo 
+    // Guardar el archivo
     const pdfBytesSinNC = await pdfDocSinNC.save();
     const pdfPathSinNC = path.join(__dirname, 'temp', 'reporte_facturas_sin_NC.pdf');
     fs.writeFileSync(pdfPathSinNC, pdfBytesSinNC);
 
     // Actualizar las facturas en la base de datos para cambiar el valor de gia a 1
     const queryUpdateGia = `
-      UPDATE facturas
-      SET gia = 1
-      WHERE idfacturas IN (${facturasProcesadas.join(',')});
-    `;
+    UPDATE facturas
+    SET gia = 1,
+        impresionuser = '${usuario}', -- Interpolar el valor directamente
+        impresiondate = NOW()
+    WHERE idfacturas IN (${facturasProcesadas.join(',')});
+  `;
 
     await queryPromise(queryUpdateGia, connectionbuquesinvoice);
-
+    console.log(queryUpdateGia); // Mostrar la consulta generada
     // Enviar el PDF como respuesta para descarga
     res.download(pdfPathSinNC, 'reporte_facturas_sin_NC.pdf', (err) => {
       if (err) {
@@ -1294,7 +1299,7 @@ app.get('/api/facturas/pendientes/:idOperador', (req, res) => {
     const queryFacturas = `
           SELECT COUNT(idfacturas) AS pendientes
           FROM facturas
-          WHERE escala_asociada IN (?) 
+          WHERE escala_asociada IN (?)
           AND estado = 'Pendiente'
       `;
 
@@ -1316,7 +1321,7 @@ app.get('/api/escalas/pendientes/:idOperador', (req, res) => {
 
   // 1. Consulta para obtener itinerarios con facturas pendientes en ambas bases de datos
   const query = `
-    SELECT 
+    SELECT
   itinerarios_prod.itinerarios.id,
   DATE_FORMAT(itinerarios_prod.itinerarios.eta, '%d-%m-%Y') AS eta,
   itinerarios_prod.lineas.nombre AS linea,  -- Aquí debes agregar el prefijo de la base de datos
@@ -1332,7 +1337,7 @@ LEFT JOIN itinerarios_prod.lineas ON itinerarios_prod.itinerarios.id_linea = iti
 LEFT JOIN itinerarios_prod.buques ON itinerarios_prod.itinerarios.id_buque = itinerarios_prod.buques.id
 LEFT JOIN itinerarios_prod.puertos ON itinerarios_prod.itinerarios.id_puerto = itinerarios_prod.puertos.id
 LEFT JOIN itinerarios_prod.operadores ON itinerarios_prod.itinerarios.id_operador1 = itinerarios_prod.operadores.id
-LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
+LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada
   AND buquesinvoice.facturas.estado = 'Pendiente'
 WHERE itinerarios_prod.itinerarios.id_operador1 = ?
   AND itinerarios_prod.itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
@@ -1358,17 +1363,17 @@ ORDER BY itinerarios_prod.itinerarios.eta DESC
 // Endpoint para obtener facturas con estado "Requiere Nc"
 app.get('/api/facturas/requierenc', (req, res) => {
   const query = `
-    SELECT 
-    idfacturas, 
-    numero, 
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
-    moneda, 
-    monto, 
-    proveedor, 
+    SELECT
+    idfacturas,
+    numero,
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
+    moneda,
+    monto,
+    proveedor,
     reclamadonc,
-    comentarios 
-    FROM facturas 
-    WHERE estado = 'Requiere Nc' 
+    comentarios
+    FROM facturas
+    WHERE estado = 'Requiere Nc'
     AND DATEDIFF(CURDATE(), fecha) <= 15
   `;
 
@@ -1395,8 +1400,8 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
 
   const query = `
     UPDATE facturas
-    SET reclamadonc = ?, 
-        ultimoreclamadoncuser = ?, 
+    SET reclamadonc = ?,
+        ultimoreclamadoncuser = ?,
         fechareclamadonc = ?
     WHERE idfacturas = ?
   `;
@@ -1421,4 +1426,71 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');
+});
+
+app.post('/api/anularfactura', async (req, res) => {
+  const { idfacturas } = req.body; // Obtener el ID de la factura desde el cuerpo de la solicitud
+
+  if (!idfacturas) {
+    return res.status(400).json({ error: 'El idFactura es requerido' });
+  }
+
+  try {
+    // Consulta para actualizar el estado de la factura
+    const updateFacturaQuery = `
+      UPDATE facturas
+      SET estado = 'Anulado'
+      WHERE idfacturas = ?;
+    `;
+
+    // Ejecutar el query de actualización de la factura
+    await queryPromise(updateFacturaQuery, [idfacturas], connectionbuquesinvoice);
+
+    res.status(200).json({ message: 'Factura anulada exitosamente' });
+  } catch (error) {
+    console.error('Error al anular la factura:', error);
+    res.status(500).json({ error: 'Error al anular la factura' });
+  }
+});
+
+app.post('/api/eliminarserviciosfactura2', async (req, res) => {
+  const { idfactura } = req.body; // Obtener el ID de la factura desde el cuerpo de la solicitud
+  try {
+    // Consulta para eliminar servicios relacionados con la factura
+    const deleteServiciosQuery = `
+      DELETE FROM serviciosfacturas
+      WHERE idfactura = ?;
+    `;
+
+    // Ejecutar el query de eliminación de servicios
+    await queryPromise(deleteServiciosQuery, [idfactura], connectionbuquesinvoice);
+
+    res.status(200).json({ message: 'Servicios relacionados con la factura eliminados exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar los servicios:', error);
+    res.status(500).json({ error: 'Error al eliminar los servicios' });
+  }
+});
+
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+
+  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura svicios:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
+    }
+
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+    }
+
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
 });

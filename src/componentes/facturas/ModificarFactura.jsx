@@ -24,6 +24,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const [moneda, setMoneda] = useState('');
     const [monto, setMonto] = useState('');
     const [isPreAprobada, setIsPreAprobada] = useState(false);
+    const [isAnular, setIsAnular] = useState(false);
 
     const [selectedFileFactura, setSelectedFileFactura] = useState(null);
     const [selectedFileNC, setSelectedFileNC] = useState(null);
@@ -59,6 +60,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
             toast.error('Error al obtener los datos del cliente');
         }
     };
+
     const fetchServiciosAsociados = async (Id) => {
         try {
             const response = await axios.get(`${environment.API_URL}obtenerservicios/${Id}`);
@@ -93,11 +95,11 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const handleServicioChange = (e) => {
         const selectedServicio = e.target.value;
         setNuevoServicio(prevState => ({
-          ...prevState,
-          servicio: selectedServicio
+            ...prevState,
+            servicio: selectedServicio
         }));
-      };
-      
+    };
+
 
     //Estados para la busqeuda de proveedores
     const [searchTermProveedor, setSearchTermProveedor] = useState('');
@@ -169,6 +171,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         console.log('ID de la escala seleccionada:', escala.id);
     };
 
+
     // Cerrar modal
     const closeModalEscala = () => setIsModalOpenEscala(false);
 
@@ -179,21 +182,50 @@ const ModificarFactura = ({ closeModal, Id }) => {
         estado: 'Pendiente', // Estado inicial
     });
     //---------------------------------------------------------------------------------------------------------------------------------
+    // Declarar el estado fuera de la función
+    const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
+        nombre: '',
+        estado: '',
+    });
+    const [serviciomodal, setServicioModal] = useState('');
 
+
+    const handleAgregarServicioEscala = async (e) => {
+        e.preventDefault();
+        try {
+            const serviciomodalToUpper = serviciomodal.toUpperCase();
+            const selectedEscalaId = escalasociadaid;
+            console.log('Escala Id agregar servicio: ', selectedEscalaId);
+            console.log('Nombre servicio agregar servicio: ', serviciomodalToUpper);
+
+            // Configurar el nuevo servicio y agregarlo a la lista
+            const servicio = { servicio: serviciomodal.toUpperCase(), estado: 'Pendiente' };
+            setNuevoServicioAgregado(servicio);
+            setServicios([...servicios, servicio]);
+            console.log('Nuevo Servicio Agregado: ', servicio);
+            console.log('Servicios lista: ', servicios);
+
+            // Realizar la solicitud al backend
+
+            await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodalToUpper });
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     // Función para agregar un nuevo servicio al array
     const handleAgregarServicio = () => {
         if (nuevoServicio.servicio) {
-          setServicios(prevServicios => {
-            const nuevosServicios = [...prevServicios, nuevoServicio];
-            console.log('servicios después de agregar', nuevosServicios);
-            return nuevosServicios;
-          });
-          setNuevoServicio({ servicio: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
+            setServicios(prevServicios => {
+                const nuevosServicios = [...prevServicios, nuevoServicio];
+                console.log('servicios después de agregar', nuevosServicios);
+                return nuevosServicios;
+            });
+            setNuevoServicio({ servicio: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
         } else {
-          toast.error('Por favor, Seleccione un servicio');
+            toast.error('Por favor, Seleccione un servicio');
         }
-      };
+    };
 
     // Función para manejar la eliminación de un servicio
     const handleEliminarServicio = (index) => {
@@ -226,6 +258,41 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const handleCheckboxChangePreAprobada = () => {
         setIsPreAprobada(!isPreAprobada);
     };
+
+    const handleAnularCheckbox = () => {
+        setIsAnular(!isAnular);
+        console.log(isAnular);
+    }
+
+    const handleAnularFactura = async () => {
+        console.log('Anulando Factura: ', facturamodificar);
+        if (!facturamodificar) {
+            alert('Por favor, selecciona una factura.');
+            return;
+        }
+
+        try {
+            // Enviar solicitud al backend
+            const response = await axios.post('http://localhost:5000/api/anularfactura', {
+                idfacturas: facturamodificar, // Pasamos el idfactura como cuerpo
+            });
+
+            if (response.status === 200) {
+                alert('Factura anulada y servicios asociados eliminados correctamente.');
+                // Realiza aquí cualquier acción adicional, como actualizar el estado de la UI
+                const response = await axios.post('http://localhost:5000//api/eliminarserviciosfactura', {
+                    idfactura: facturamodificar, // Pasamos el idfactura como cuerpo
+                });
+
+
+            }
+        } catch (error) {
+            console.error('Error al anular la escala:', error);
+            alert('Hubo un error al anular la escala. Por favor, inténtalo de nuevo.');
+        }
+    };
+
+    
     useEffect(() => {
         const icfechaactual = new Date().toISOString().split("T")[0]; // Obtiene la fecha actual en formato YYYY-MM-DD
         setFecha(icfechaactual);
@@ -267,22 +334,44 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 ncUrl = fileResponseNC.data.files?.fileNCUrl || '';
             }
 
+            let facturaData;
             // Segundo paso: Modificar los datos de la factura
-            const facturaData = {
-                idfactura: facturamodificar, // ID de la factura a modificar
-                numero: nrofactura,
-                fecha: fecha,
-                moneda: moneda,
-                monto: monto,
-                escala_asociada: escalasociadaid,
-                proveedor: searchTermProveedor,
-                url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
-                url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
-                estado: "Pendiente", // O el estado que corresponda
-                gia: 0,
-                pre_aprobado: isPreAprobada ? 1 : 0,
-                servicios: servicios,
-            };
+            if (isAnular) {
+                facturaData = {
+                    idfactura: facturamodificar, // ID de la factura a modificar
+                    numero: nrofactura,
+                    fecha: fecha,
+                    moneda: moneda,
+                    monto: monto,
+                    escala_asociada: escalasociadaid,
+                    proveedor: searchTermProveedor,
+                    url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
+                    url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
+                    estado: "Anulado", // O el estado que corresponda
+                    gia: 0,
+                    pre_aprobado: isPreAprobada ? 1 : 0,
+                    servicios: servicios};
+
+
+                    
+
+                } else {
+                    facturaData = {
+                        idfactura: facturamodificar, // ID de la factura a modificar
+                        numero: nrofactura,
+                        fecha: fecha,
+                        moneda: moneda,
+                        monto: monto,
+                        escala_asociada: escalasociadaid,
+                        proveedor: searchTermProveedor,
+                        url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
+                        url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
+                        estado: "Pendiente", // O el estado que corresponda
+                        gia: 0,
+                        pre_aprobado: isPreAprobada ? 1 : 0,
+                        servicios: servicios,
+                    }
+                };
 
             // Enviar la solicitud para actualizar la factura
             const facturaResponse = await axios.put(`${environment.API_URL}modificarfactura`, facturaData, {
@@ -295,13 +384,21 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
             // Retrasar el cierre del modal para permitir que el toast se muestre
             setTimeout(() => {
-              closeModal();
+                closeModal();
             }, 3000);
+
+            if (isAnular) {
+                console.log('factura a modificar',facturamodificar);
+                    const idfactura = facturamodificar;
+                    const response4 = await axios.delete(`http://localhost:5000/api/eliminarserviciosfactura${idfactura}`);
+                    console.log('Respuesta del servidor:', response4.data);
+            }
 
         } catch (error) {
             console.error("Error durante el proceso:", error);
             toast.error("Error al modificar la factura");
         }
+
     };
 
 
@@ -323,7 +420,8 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                     type="text"
                                     id="ecID"
                                     value={nrofactura}
-                                    onChange={(e) => setNroFactura(e.target.value)}
+                                    onChange={(e) => setNroFactura(e.target.value)
+                                    }
                                     required
                                 />
                             </div>
@@ -346,6 +444,15 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                         id="preAprobadaCheckbox"
                                         checked={isPreAprobada}
                                         onChange={handleCheckboxChangePreAprobada}
+                                    />
+                                </label>
+                                <label htmlFor="AnularCheckbox" className="factura-label">
+                                    NC Total
+                                    <input
+                                        type="checkbox"
+                                        id="AnularCheckbox"
+                                        checked={isAnular}
+                                        onChange={handleAnularCheckbox} // Actualiza el estado
                                     />
                                 </label>
                             </div>
@@ -444,6 +551,16 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                             <option key={index} value={servicio.nombre}>{servicio.nombre}</option>
                                         ))}
                                     </select>
+                                    <p></p>
+                                    <div className='div-parametros'>
+                                        <input className='input_buscar'
+                                            type="text"
+                                            placeholder="Agregar Servicio"
+                                            value={serviciomodal}
+                                            onChange={(e) => setServicioModal(e.target.value)}
+                                        />
+                                        <button className="add-button" onClick={handleAgregarServicioEscala}>➕</button>
+                                    </div>
                                 </div>
 
                                 <label >Estado:</label>
@@ -453,7 +570,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                     readOnly
                                 >
                                     <option value="Pendiente">Pendiente</option>
-                                    
+
                                 </select>
 
                                 <button className="btn-estandar" type="button" onClick={handleAgregarServicio}>Agregar Servicio</button>
@@ -511,7 +628,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 handleSelectProveedor={handleSelectProveedor}
             />
             <ToastContainer
-        />
+            />
         </div>
     );
 }
