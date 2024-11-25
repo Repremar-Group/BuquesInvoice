@@ -55,7 +55,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
         const fetchServiciosPuerto = async () => {
           try {
             console.log('Segundo log', selectedEscalaPuerto); // Verificar el puerto
-            const response = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${selectedEscalaPuerto}`);
+            const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${selectedEscalaPuerto}`);
 
             // Transformar el listado para solo tener 'nombre' y 'idescala'
             const serviciosTransformados = response.data.map(servicio => ({
@@ -67,7 +67,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
             console.log('Datos enviados al servidor:', serviciosTransformados);
             // Cambiar el formato enviado al servidor
-            const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
               servicios: serviciosTransformados
             })
 
