@@ -1,7 +1,7 @@
 # Use an official Node.js runtime as a parent image
-FROM node:16-alpine
+FROM node:latest
 
-RUN apk add --no-cache samba-client cifs-utils
+# RUN apk add --no-cache samba-client cifs-utils
 
 # Set the working directory
 WORKDIR /app
