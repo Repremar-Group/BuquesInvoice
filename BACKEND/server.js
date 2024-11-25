@@ -3,6 +3,11 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const cors = require('cors');
 const mysql = require('mysql');
+const Busboy = require('busboy');
+
+const multer = require('multer'); // Middleware para manejar la carga de archivos
+const { BlobServiceClient } = require('@azure/storage-blob');
+
 
 //Constantes para manejar las caratulas con pdflib
 const { PDFDocument, rgb } = require('pdf-lib');
@@ -50,6 +55,11 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL');
 });
+const AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
+/*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
+const containerNCClient = blobServiceClient.getContainerClient('nc');*/
+const upload = multer({ storage: multer.memoryStorage() });
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
@@ -303,8 +313,7 @@ app.get('/api/previewescalas', (req, res) => {
 //Manejo de archivos para facturas
 // Middleware para manejar el archivo
 app.use(fileUpload());
-//Endpoint para cargar pdfs desde ingreso de facturas
-app.post('/api/Agregarfactura', (req, res) => {
+app.post('/api/Agregarfactura', async (req, res) => {
   // Verificar si se han recibido archivos (puede ser uno o ambos)
   if (!req.files || (!req.files.fileFactura && !req.files.fileNC)) {
     return res.status(400).send('Se requiere al menos un archivo.');
@@ -316,27 +325,43 @@ app.post('/api/Agregarfactura', (req, res) => {
   // Verificar si 'fileFactura' existe y moverlo
   if (req.files.fileFactura) {
     const archivoFactura = req.files.fileFactura;
-    const uploadPathFactura = path.join(__dirname, '..', 'public', 'Facturas', archivoFactura.name);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+    const containerName = 'invoices'; // Replace with your container name
+    const blobName = req.files.fileFactura.name; // Use original file name
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const contentType = 'application/pdf'; // Get MIME type from the uploaded file
+    
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    console.log(req.files.fileFactura);
+   
 
-    archivoFactura.mv(uploadPathFactura, (err) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      archivosSubidos.fileFacturaUrl = `/Facturas/${archivoFactura.name}`; // Guardamos la ruta del archivo
-    });
+    // Upload file to Azure Blob Storage
+    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {blobHTTPHeaders: {
+      blobContentType: contentType, // Set Content-Type explicitly
+    },});
+    archivosSubidos.fileFacturaUrl = `https://buquesinvoicestorage.blob.core.windows.net/invoices/${archivoFactura.name}`; // Guardamos la ruta del archivo
+    
   }
 
   // Verificar si 'fileNC' existe y moverlo
   if (req.files.fileNC) {
     const archivoNC = req.files.fileNC;
-    const uploadPathNC = path.join(__dirname, '..', 'public', 'Nc', archivoNC.name);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+    const containerName = 'notascredito'; // Replace with your container name
+    const blobName = req.files.fileNC.name; // Use original file name
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const contentType = 'application/pdf'; // Get MIME type from the uploaded file
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    console.log(req.files.fileNC.name);
+   
 
-    archivoNC.mv(uploadPathNC, (err) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      archivosSubidos.fileNCUrl = `/Nc/${archivoNC.name}`; // Guardamos la ruta del archivo
-    });
+    // Upload file to Azure Blob Storage
+    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length,{blobHTTPHeaders: {
+      blobContentType: contentType, // Set Content-Type explicitly
+    },});
+    archivosSubidos.fileNCUrl = `https://buquesinvoicestorage.blob.core.windows.net/notascredito/${archivoNC.name}`; // Guardamos la ruta del archivo
+
+    
   }
 
   // Esperar que se muevan los archivos y luego responder
@@ -347,6 +372,93 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
+app.post('/api/Agregarfactura3', (req, res) => {
+  const busboy = new Busboy({ headers: req.headers });
+
+  // Handle file upload
+  busboy.on('file', async (fieldname, file, filename, encoding, mimetype) => {
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blockBlobClient = containerClient.getBlockBlobClient(filename);
+
+    let buffer = Buffer.from([]);
+
+    // Collect data into the buffer
+    file.on('data', (data) => {
+      buffer = Buffer.concat([buffer, data]);
+    });
+
+    // Once the file is fully received
+    file.on('end', async () => {
+      try {
+        // Upload file to Azure Blob Storage
+        await blockBlobClient.upload(buffer, buffer.length);
+        res.status(200).send(`File uploaded successfully: ${filename}`);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        res.status(500).send('Error uploading file');
+      }
+    });
+  });
+
+  // Pipe the incoming request to Busboy
+  req.pipe(busboy);
+});
+//Endpoint para cargar pdfs desde ingreso de facturas
+app.post('/api/Agregarfactura2', async (req, res) => {
+  console.log('arranca aca');
+  const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+  const containerName = 'pdfsazure'; // Replace with your container name
+  console.log('antes del try', req.files.fileFactura.name);
+  try {
+    if (!req.files || (!req.files.fileFactura && !req.files.fileNC)) {
+      return res.status(400).send('Se requiere al menos un archivo.');
+    }
+
+    const archivosSubidos = {};
+
+    // Subir archivo 'fileFactura'
+    if (req.files.fileFactura) {
+      console.log(req.files.fileFactura.name);
+      const blobName = req.files.fileFactura.name; // Use original file name
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+      // Upload file to Azure Blob Storage
+      blockBlobClient.upload(req.files.fileFactura, req.files.fileFactura.length);
+
+      /*
+      const archivoFactura = req.files.fileFactura[0];
+      const blobNameFactura = archivoFactura.originalname;
+      const blockBlobClientFactura = containerFacturaClient.getBlockBlobClient(blobNameFactura);
+
+      // Subir a Azure Blob Storage
+      await blockBlobClientFactura.uploadData(archivoFactura.buffer);
+      */
+      archivosSubidos.fileFacturaUrl = `https://${containerFacturaClient.containerName}.blob.core.windows.net/facturas/${blobNameFactura}`;
+    }
+
+    // Subir archivo 'fileNC'
+    if (req.files.fileNC) {
+      const archivoNC = req.files.fileNC[0];
+      const blobNameNC = archivoNC.originalname;
+      const blockBlobClientNC = containerNCClient.getBlockBlobClient(blobNameNC);
+
+      // Subir a Azure Blob Storage
+      await blockBlobClientNC.uploadData(archivoNC.buffer);
+      archivosSubidos.fileNCUrl = `https://${containerNCClient.containerName}.blob.core.windows.net/nc/${blobNameNC}`;
+    }
+
+    // Responder con las URLs de los archivos subidos
+    res.json({
+      message: 'Archivos subidos exitosamente',
+      files: archivosSubidos,
+    });
+  } catch (err) {
+    console.error('Error en el servidor:', err.message);
+    res.status(500).send('Error al procesar los archivos.');
+  }
+}
+);
 app.listen(5000, () => {
   console.log('Servidor corriendo en el puerto 5000');
 });
@@ -1228,8 +1340,8 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(notaCreditoPdfDoc, notaCreditoPdfDoc.getPageIndices());
           pdfDocConNC.addPage(notaCreditoPdfPage);
         }
-         // Guardar el ID de la factura para actualizar después
-         facturasProcesadas.push(factura.idfacturas);
+        // Guardar el ID de la factura para actualizar después
+        facturasProcesadas.push(factura.idfacturas);
       }
 
     }
