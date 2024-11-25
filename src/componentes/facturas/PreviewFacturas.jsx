@@ -80,7 +80,7 @@ const PreviewEscalas = () => {
           responseType: 'blob',
         });
  
-        // Descargar el segundo archivo
+        // Descargar el segundo archivo 1
         const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
         const linkWithoutNC = document.createElement('a');
         linkWithoutNC.href = urlWithoutNC;
