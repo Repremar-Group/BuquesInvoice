@@ -1,0 +1,344 @@
+.Contenedor_Principal {
+    width: 100%;
+    /* Usa todo el ancho disponible */
+    height: 100vh;
+    /* Altura fija relativa a la ventana del navegador */
+    max-width: 100%;
+    /* Ajustamos el ancho máximo para que no exceda el ancho del viewport */
+    padding-left: 100px;
+    /* Espacio solo a la izquierda */
+    padding-right: 20px;
+    /* Espacio a la derecha */
+    margin: 0 auto;
+    /* Centra el contenedor horizontalmente, sin margen superior */
+    box-sizing: border-box;
+    /* Asegúrate de que el padding no afecte el ancho total */
+    overflow-y: auto;
+    /* Permitir desplazamiento si el contenido excede la altura */
+}
+
+.Titulo {
+    margin: 20px 100px 10px 100px;
+    /* Espacio superior, y mantiene el padding lateral */
+    text-align: left;
+    /* Alinea el texto a la izquierda */
+    color: #143361;
+}
+
+.table-container {
+    width: 1500px;
+    /* Ajusta el ancho restando padding */
+    max-width: 100%;
+    /* Ajustamos el ancho máximo para que no exceda el ancho del viewport */
+    margin: 0 auto;
+    /* Centra el contenedor horizontalmente, sin margen superior */
+    box-sizing: border-box;
+    /* Asegúrate de que el padding no afecte el ancho total */
+    overflow-x: auto;
+    /* Permite desplazamiento horizontal si la tabla es más ancha que el contenedor */
+}
+
+.search-bar {
+    display: flex;
+    justify-content: space-between; /* Coloca elementos en extremos opuestos */
+    align-items: center; /* Alinea verticalmente los elementos */
+    gap: 10px; /* Espaciado entre elementos */
+  }
+  
+  .search-left {
+    display: flex;
+    align-items: center; /* Alinea verticalmente los elementos */
+    gap: 10px; /* Espaciado entre los elementos de la izquierda */
+  }
+
+.add-button {
+    background: none;
+    /* Sin fondo */
+    border: none;
+    /* Sin borde */
+    cursor: pointer;
+    /* Cambia el cursor al pasar por encima */
+    font-size: 20px;
+    /* Tamaño de la fuente */
+    display: inline-block;
+    /* Ajusta el tamaño del botón al contenido */
+    padding: 2px;
+    /* Padding mínimo para un tamaño reducido */
+    margin: 2px;
+    /* Margen mínimo para evitar espacio adicional */
+    line-height: 1;
+    /* Asegura que el botón no tenga altura extra */
+    height: auto;
+    /* Permitir que el botón ajuste su altura al contenido */
+    width: fit-content;
+    /* Ajusta el ancho al contenido */
+    min-width: 10px;
+    /* Permite que el ancho sea tan pequeño como sea necesario */
+    max-width: none;
+    /* Sin límite superior al ancho */
+    transition: transform 0.2s ease;
+    /* Transición suave para el hover */
+}
+
+.add-button:hover {
+    transform: scale(1.1);
+    /* Aumenta el tamaño al 110% */
+    background: none;
+    /* Sin fondo */
+}
+
+.input_buscar[type="text"] {
+    width: 200px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: #f0f0f0;
+    /* color de fondo claro */
+    color: gray;
+}
+
+.tabla-facturas th,
+.tabla-facturas td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #dddddd;
+
+}
+
+.tabla-facturas th {
+    background-color: #143361;
+    color: white;
+}
+
+.tabla-facturas {
+    font-size: 1em;
+    border-collapse: collapse;
+    table-layout: fixed; /* Asegura que las columnas tengan un ancho fijo */
+    width: 100%; /* La tabla ocupará el 100% del contenedor */
+    max-height: 500px;
+    overflow-y: auto;
+    display: block; /* Hace que la tabla se comporte como un bloque para aplicar scroll */
+    border-radius: 5px;
+    margin: 20px 0;
+}
+
+.tabla-facturas tbody {
+    overflow-y: auto;
+}
+
+.tabla-facturas thead {
+    position: sticky;
+    top: 0;
+    background-color: #143361;
+    z-index: 1;
+}
+
+/* Estilo del scrollbar */
+.tabla-facturas::-webkit-scrollbar {
+    width: 10px; 
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+  
+.tabla-facturas::-webkit-scrollbar-thumb {
+    background-color: #143361;
+    border-radius: 5px;
+    border: 2px solid #f0f0f0;
+}
+  
+.tabla-facturas::-webkit-scrollbar-thumb:hover {
+    background-color: #4885e2;
+}
+
+th,
+td {
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+    overflow: hidden;
+    /* Oculta el desbordamiento */
+    white-space: nowrap;
+    /* Evita el salto de línea */
+    text-overflow: ellipsis;
+    /* Muestra "..." si hay desbordamiento */
+
+}
+
+/* Anchos fijos para cada columna */
+th:nth-child(1),
+td:nth-child(1) {
+    width: 2%;
+    text-align: center;
+}
+
+
+th:nth-child(2),
+td:nth-child(2) {
+    width: 10%;
+    text-align: center;
+}
+
+
+th:nth-child(3),
+td:nth-child(3) {
+    width: 2%;
+    text-align: center;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+    width: 3%;
+    text-align: center;
+}
+
+
+th:nth-child(5),
+td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+}
+
+
+th:nth-child(6),
+td:nth-child(6) {
+    width: 10%;
+    text-align: center;
+}
+
+
+th:nth-child(7),
+td:nth-child(7) {
+    width: 6%;
+    text-align: center;
+}
+th:nth-child(8),
+td:nth-child(8) {
+    width: 10%;
+    text-align: center;
+}
+th:nth-child(9),
+td:nth-child(9) {
+    width: 3%;
+    text-align: center;
+}
+th:nth-child(10),
+td:nth-child(10) {
+    width: 8%;
+    text-align: center;
+}
+
+
+th {
+    background-color: #f9f9f9;
+}
+.contenedor-tabla-viewfactura{
+    width: 1500px;
+}
+
+.modal-container {
+    background-color: transparent;
+    /* Sin fondo */
+    border: none;
+    /* Sin bordes */
+    box-shadow: none;
+    /* Sin sombra */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    /* Asegura que esté por encima de otros elementos */
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Fondo oscuro con transparencia */
+    z-index: 999;
+    /* Detrás del modal, pero delante del resto */
+}
+
+/* Estilos para el modal de eliminación de factura */
+.modal-overlayeliminarfactura {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-overlayeliminarfactura.active {
+    display: flex;
+  }
+  
+  .modal-containereliminarfactura {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .modal-containereliminarfactura h2 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .modal-containereliminarfactura p {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .modal-containereliminarfactura strong {
+    font-weight: bold;
+  }
+  
+  .modal-buttonseliminarfactura {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+  }
+  
+  .modal-buttonseliminarfactura button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    width: 45%;
+  }
+  
+  .modal-buttonseliminarfactura button:hover {
+    background-color: #0056b3;
+  }
+  
+  .modal-buttonseliminarfactura button:active {
+    background-color: #003d80;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2) {
+    background-color: #dc3545;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2):hover {
+    background-color: #c82333;
+  }
+  
+  .modal-buttonseliminarfactura button:nth-child(2):active {
+    background-color: #9a2d2f;
+  }

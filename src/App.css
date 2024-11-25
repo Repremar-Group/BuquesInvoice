@@ -155,8 +155,8 @@ body{
 
 /* Estilos para el checkbox */
 .checkbox-estandar input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
+    width: 10px;
+    height: 10px;
     cursor: pointer;
     accent-color: #143361; /* Cambia el color del checkbox en navegadores compatibles */
 }
@@ -165,3 +165,103 @@ body{
 .checkbox-estandar input[type="checkbox"]:hover {
     box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
 }
+
+input[type="checkbox"] {
+    /* Ocultar el estilo nativo */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  
+    /* Dimensiones */
+    width: 17px;
+    height: 17px;
+  
+    /* Estilo básico */
+    border: 2px solid #143361; /* Borde con el color deseado */
+    border-radius: 4px; /* Esquinas ligeramente redondeadas */
+    background-color: #fff; /* Fondo blanco */
+    cursor: pointer; /* Cambiar el cursor al pasar por encima */
+    display: inline-block; /* Asegura el control de alineación */
+    transition: all 0.3s ease; /* Animación suave */
+  }
+  
+  input[type="checkbox"]:checked {
+    /* Estilo cuando está marcado */
+    background-color: #143361; /* Fondo con el color deseado */
+    border-color: #143361; /* Mantén el borde del mismo color */
+  }
+  
+  input[type="checkbox"]:checked::after {
+    /* Icono de check */
+    content: '✔'; /* Carácter de check */
+    color: white; /* Color del check */
+    font-size: 14px; /* Tamaño del texto */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    top: -3px; /* Ajuste fino para centrar */
+  }
+  /* Animación para el modal */
+@keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  /* Estilos generales para el modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5); /* Fondo oscuro semitransparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Asegúrate de que esté sobre otros contenidos */
+  }
+  
+  /* Contenido del modal */
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 700px; /* Ajusta el tamaño según lo necesites */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.5s ease-out; /* Aparece desde arriba */
+  }
+  /* Estilo del scrollbar */
+.tabla-container::-webkit-scrollbar {
+    width: 10px; 
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+  
+.tabla-container::-webkit-scrollbar-thumb {
+    background-color: #143361;
+    border-radius: 5px;
+    border: 2px solid #f0f0f0;
+}
+  
+.tabla-container::-webkit-scrollbar-thumb:hover {
+    background-color: #4885e2;
+}
+  
+  /* Botón para cerrar el modal */
+  .closeModal {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 20px;
+  }
+ 

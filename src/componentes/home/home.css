@@ -1,0 +1,74 @@
+/* Home Component */
+.home-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .home-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .home-header h3 {
+    font-size: 1rem;
+    color: #143361;
+  }
+  
+  /* Tabla de escalas */
+  .home-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .home-table th, .home-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #f1f1f1;
+  }
+  
+  .home-table th {
+    background-color: #143361;
+    color: white;
+    font-size: 1rem;
+  }
+  
+  .home-table td {
+    font-size: 0.9rem;
+    color: #555;
+  }
+  
+  .home-table tr:hover {
+    background-color: #ecf0f1;
+  }
+  
+  /* Mensaje de vacío */
+  .home-empty-message {
+    font-size: 1.2rem;
+    color: #888;
+    text-align: center;
+    margin-top: 30px;
+  }
+  
+  /* Responsive para pantallas pequeñas */
+  @media (max-width: 768px) {
+    .home-container {
+      padding: 15px;
+    }
+  
+    .home-header h1 {
+      font-size: 2rem;
+    }
+  
+    .home-table {
+      font-size: 0.85rem;
+    }
+  
+    .home-table th, .home-table td {
+      padding: 10px;
+    }
+  }

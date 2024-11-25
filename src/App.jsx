@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, BrowserRouter } from 'react-router-dom';
 import Layout from './componentes/layout/Layout'
 import './App.css'
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 function App() {
   const [count, setCount] = useState(0)
