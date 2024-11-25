@@ -104,7 +104,7 @@ const Home = () => {
       });
 
       axios
-        .get('http://localhost:5000/api/facturas/requierenc')
+        .get(`${environment.API_URL}facturas/requierenc`)
         .then((response) => {
           setFacturasRequiereNC(response.data);
           console.log(response.data);
@@ -271,7 +271,7 @@ const Home = () => {
     const fetchEscalas = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/obtenerprogresoescalas');
+        const response = await axios.get(`${environment.API_URL}obtenerprogresoescalas`);
         setEscalas(response.data);
         console.log(response.data);
       } catch (error) {
@@ -306,7 +306,7 @@ const Home = () => {
     const handleUrgenteChange = async (escalaId, esUrgente) => {
       try {
         // Hacer una solicitud POST o PUT al backend para actualizar el estado de urgencia
-        await axios.post('http://localhost:5000/api/actualizarurgencia', {
+        await axios.post(`${environment.API_URL}actualizarurgencia`, {
           idescala: escalaId,
           esurgente: esUrgente ? 1 : 0, // 1 para urgente, 0 para no urgente
         });

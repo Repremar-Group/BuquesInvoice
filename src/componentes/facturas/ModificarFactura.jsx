@@ -207,7 +207,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
             // Realizar la solicitud al backend
 
-            await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodalToUpper });
+            await axios.post(`${environment.API_URL}escalas/agregarservicio2}`, { selectedEscalaId, serviciomodalToUpper });
         } catch (error) {
             console.error(error);
         }
@@ -263,35 +263,6 @@ const ModificarFactura = ({ closeModal, Id }) => {
         setIsAnular(!isAnular);
         console.log(isAnular);
     }
-
-    const handleAnularFactura = async () => {
-        console.log('Anulando Factura: ', facturamodificar);
-        if (!facturamodificar) {
-            alert('Por favor, selecciona una factura.');
-            return;
-        }
-
-        try {
-            // Enviar solicitud al backend
-            const response = await axios.post('http://localhost:5000/api/anularfactura', {
-                idfacturas: facturamodificar, // Pasamos el idfactura como cuerpo
-            });
-
-            if (response.status === 200) {
-                alert('Factura anulada y servicios asociados eliminados correctamente.');
-                // Realiza aquí cualquier acción adicional, como actualizar el estado de la UI
-                const response = await axios.post('http://localhost:5000//api/eliminarserviciosfactura', {
-                    idfactura: facturamodificar, // Pasamos el idfactura como cuerpo
-                });
-
-
-            }
-        } catch (error) {
-            console.error('Error al anular la escala:', error);
-            alert('Hubo un error al anular la escala. Por favor, inténtalo de nuevo.');
-        }
-    };
-
     
     useEffect(() => {
         const icfechaactual = new Date().toISOString().split("T")[0]; // Obtiene la fecha actual en formato YYYY-MM-DD
@@ -390,7 +361,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
             if (isAnular) {
                 console.log('factura a modificar',facturamodificar);
                     const idfactura = facturamodificar;
-                    const response4 = await axios.delete(`http://localhost:5000/api/eliminarserviciosfactura${idfactura}`);
+                    const response4 = await axios.delete(`${environment.API_URL}eliminarserviciosfactura${idfactura}`);
                     console.log('Respuesta del servidor:', response4.data);
             }
 
