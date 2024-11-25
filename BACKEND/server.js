@@ -996,15 +996,15 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado ----Cambie esto ayer
     const queryFacturas = `
-      SELECT
-        f.idfacturas,
-        f.numero,
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
-        f.moneda,
-        f.monto,
-        f.escala_asociada,
-        f.proveedor,
-        f.estado,
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
         f.gia,
         f.url_factura,
         f.url_notacredito
@@ -1024,7 +1024,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT
+      SELECT 
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1122,22 +1122,17 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 //Endpoint que genera el con sin notas de credito
 app.get('/api/exportarpdfconnotas', async (req, res) => {
   try {
-    const { usuario } = req.query; // Obtener el usuario del parámetro
-
-    if (!usuario) {
-      return res.status(400).json({ error: 'El parámetro usuario es obligatorio.' });
-    }
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
-      SELECT
-        f.idfacturas,
-        f.numero,
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
-        f.moneda,
-        f.monto,
-        f.escala_asociada,
-        f.proveedor,
-        f.estado,
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
         f.gia,
         f.url_factura,
         f.url_notacredito
@@ -1146,7 +1141,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
-    // Realizar la consulta a la base de datos
+    // Realizar la consulta a la base de datos 
     const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
     if (!Array.isArray(facturas) || facturas.length === 0) {
       return res.status(404).json({ error: 'No hay facturas para exportar.' });
@@ -1157,7 +1152,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT
+      SELECT 
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1244,21 +1239,19 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
     }
 
     // Guardar el archivo 
-    const pdfBytesSinNC = await pdfDocSinNC.save();
+    const pdfBytesSinNC = await pdfDocConNC.save();
     const pdfPathSinNC = path.join(__dirname, 'temp', 'reporte_facturas_sin_NC.pdf');
     fs.writeFileSync(pdfPathSinNC, pdfBytesSinNC);
 
     // Actualizar las facturas en la base de datos para cambiar el valor de gia a 1
     const queryUpdateGia = `
-    UPDATE facturas
-    SET gia = 1,
-        impresionuser = '${usuario}', -- Interpolar el valor directamente
-        impresiondate = NOW()
-    WHERE idfacturas IN (${facturasProcesadas.join(',')});
-  `;
+      UPDATE facturas
+      SET gia = 1
+      WHERE idfacturas IN (${facturasProcesadas.join(',')});
+    `;
 
     await queryPromise(queryUpdateGia, connectionbuquesinvoice);
-    console.log(queryUpdateGia); // Mostrar la consulta generada
+
     // Enviar el PDF como respuesta para descarga
     res.download(pdfPathSinNC, 'reporte_facturas_sin_NC.pdf', (err) => {
       if (err) {
