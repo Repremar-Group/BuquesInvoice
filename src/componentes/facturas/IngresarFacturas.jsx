@@ -29,28 +29,62 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   const [isFetchedServicios, setIsFetchedServicios] = useState(false); // Para evitar múltiples llamadas
 
   const [serviciomodal, setServicioModal] = useState('');
+  const [isServiciosVisible, setIsServiciosVisible] = useState(false);
 
   const fetchServicios = async () => {
     try {
       console.log(escalasociadaid);
       const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalasociadaid}`);
-      console.log(response.data);
+      console.log('Tamaño de datos: ', response.data.length);
+      let booleanoServicios;
       if (response.data.length === 0) {
         console.log("La lista de servicios está vacía.");
-        setIsFetchedServicios(false);
+        booleanoServicios = false;
       } else {
         console.log("La lista de servicios contiene datos.");
         setServiciosLista(response.data);
-        setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
+        booleanoServicios = true;
       }
+      // Se chequea que la escala tenga o no tenga servicios para agregarlos todos
+      console.log('ID de la escala seleccionada:', escalasociadaid);
+      console.log('isFetchedSvicios: ', booleanoServicios);
+      if (!booleanoServicios) {
+
+        const fetchServiciosPuerto = async () => {
+          try {
+            console.log('Segundo log', selectedEscalaPuerto); // Verificar el puerto
+            const response = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${selectedEscalaPuerto}`);
+
+            // Transformar el listado para solo tener 'nombre' y 'idescala'
+            const serviciosTransformados = response.data.map(servicio => ({
+              nombre: servicio.nombre,
+              idescala: escalasociadaid  // idescala es igual a escala.id
+            }));
+            console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
+            console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
+
+            console.log('Datos enviados al servidor:', serviciosTransformados);
+            // Cambiar el formato enviado al servidor
+            const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+              servicios: serviciosTransformados
+            })
+
+          } catch (error) {
+            console.error('Error al obtener servicios puertos:', error);
+          }
+        };
+        fetchServiciosPuerto();
+      };
     } catch (error) {
       console.error('Error al obtener vuelos:', error);
     }
-
-
   };
 
+  const handleOpenSelect = async () => {
 
+    await fetchServicios(); // Espera que se complete la carga de servicios
+
+  };
   const handleServicioChange = (e) => {
     setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
     console.log('este es l nuevo servicio', nuevoServicio)
@@ -94,6 +128,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   const [filteredEscalas, setFilteredEscalas] = useState([]);
   const [escalasociadaid, setEscalaAsociadaId] = useState('');
   const [selectedEscala, setSelectedEscala] = useState(null);
+  const [selectedEscalaPuerto, setSelectedEscalaPuerto] = useState('');
   const [isModalOpenEscala, setIsModalOpenEscala] = useState(false);
 
   // Manejo del input de búsqueda
@@ -118,39 +153,12 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
   const handleSelectEscala = (escala) => {
     setSelectedEscala(escala);
+    setSelectedEscalaPuerto(escala.id_puerto);
     setSearchTermEscalaAsociada(escala.buque + ", ETA: " + escala.eta); // Muestra el nombre seleccionado en el input
     setEscalaAsociadaId(escala.id);
     setIsModalOpenEscala(false); // Cierra el modal
 
-    // Se chequea que la escala tenga o no tenga servicios para agregarlos todos
-    console.log('ID de la escala seleccionada:', escala.id);
-    if (!isFetchedServicios) {
 
-      const fetchServiciosPuerto = async () => {
-        try {
-          console.log('Segundo log', escala.id_puerto); // Verificar el puerto
-          const response = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${escala.id_puerto}`);
-
-          // Transformar el listado para solo tener 'nombre' y 'idescala'
-          const serviciosTransformados = response.data.map(servicio => ({
-            nombre: servicio.nombre,
-            idescala: escala.id  // idescala es igual a escala.id
-          }));
-          console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
-          console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
-
-          console.log('Datos enviados al servidor:', serviciosTransformados);
-          // Cambiar el formato enviado al servidor
-          const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
-            servicios: serviciosTransformados
-          })
-
-        } catch (error) {
-          console.error('Error al obtener servicios puertos:', error);
-        }
-      };
-      fetchServiciosPuerto();
-    };
   };
 
   // Cerrar modal
@@ -185,33 +193,34 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     }
   };
 
-// Declarar el estado fuera de la función
-const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
-  nombre: '',
-  estado: '',
-});
+  // Declarar el estado fuera de la función
+  const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
+    nombre: '',
+    estado: '',
+  });
 
-const handleAgregarServicioEscala = async (e) => {
-  e.preventDefault();
-  try {
-    const selectedEscalaId = selectedEscala.id;
-    console.log('Escala Id agregar servicio: ', selectedEscalaId);
-    console.log('Nombre servicio agregar servicio: ', serviciomodalToUpper);
+  const handleAgregarServicioEscala = async (e) => {
+    e.preventDefault();
+    try {
+      const serviciomodalToUpper = serviciomodal.toUpperCase();
+      const selectedEscalaId = selectedEscala.id;
+      console.log('Escala Id agregar servicio: ', selectedEscalaId);
+      console.log('Nombre servicio agregar servicio: ', serviciomodalToUpper);
 
-    // Configurar el nuevo servicio y agregarlo a la lista
-    const servicio = { nombre: serviciomodal.toUpperCase(), estado: 'Pendiente' };
-    setNuevoServicioAgregado(servicio);
-    setServicios([...servicios, servicio]);
-    console.log('Nuevo Servicio Agregado: ', servicio);
-    console.log('Servicios lista: ', servicios);
+      // Configurar el nuevo servicio y agregarlo a la lista
+      const servicio = { nombre: serviciomodal.toUpperCase(), estado: 'Pendiente' };
+      setNuevoServicioAgregado(servicio);
+      setServicios([...servicios, servicio]);
+      console.log('Nuevo Servicio Agregado: ', servicio);
+      console.log('Servicios lista: ', servicios);
 
-    // Realizar la solicitud al backend
-    const serviciomodalToUpper = serviciomodal.toUpperCase();
-    await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodalToUpper });
-  } catch (error) {
-    console.error(error);
-  }
-};
+      // Realizar la solicitud al backend
+
+      await axios.post('http://localhost:5000/api/escalas/agregarservicio2', { selectedEscalaId, serviciomodalToUpper });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
 
   // Función para manejar la eliminación de un servicio
@@ -449,9 +458,7 @@ const handleAgregarServicioEscala = async (e) => {
                     name="servicio"
                     value={nuevoServicio.nombre}
                     onChange={handleServicioChange}
-                    onClick={() => {
-                      if (!isFetchedServicios) fetchServicios();
-                    }}
+                    onClick={handleOpenSelect}
 
                   >
                     <option value="">Selecciona un servicio</option>
@@ -538,7 +545,7 @@ const handleAgregarServicioEscala = async (e) => {
         handleSelectProveedor={handleSelectProveedor}
       />
       <ToastContainer
-        />
+      />
     </div>
   );
 }
