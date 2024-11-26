@@ -934,13 +934,13 @@ app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
 app.post('/api/insertserviciospuertos', (req, res) => {
   console.log('Cuerpo de la solicitud:', req.body);  // Verificar el contenido
   const servicios = req.body.servicios;
-
+ 
   if (!servicios || !Array.isArray(servicios)) {
     return res.status(400).json({ error: 'La lista de servicios es requerida' });
   }
-
+ 
   const query = 'INSERT INTO serviciosescalas (nombre, idescala) VALUES (?, ?)';
-
+ 
   // Utilizar una transacción o Promise.all para manejar múltiples inserciones
   const promises = servicios.map((servicio) => {
     const { idescala, nombre } = servicio;
@@ -951,7 +951,7 @@ app.post('/api/insertserviciospuertos', (req, res) => {
       });
     });
   });
-
+ 
   Promise.all(promises)
     .then((results) => {
       res.json({ message: 'Servicios agregados con éxito', serviciosIds: results.map(r => r.insertId) });

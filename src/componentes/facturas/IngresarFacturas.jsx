@@ -37,6 +37,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
       console.log('Tamaño de datos: ', response.data.length);
       let booleanoServicios;
+      console.log(response.data);
       if (response.data.length === 0) {
         console.log("La lista de servicios está vacía.");
         booleanoServicios = false;
@@ -65,7 +66,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
  
             console.log('Datos enviados al servidor:', serviciosTransformados);
             // Cambiar el formato enviado al servidor
-            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos'`, {
+            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
               servicios: serviciosTransformados
             })
  
@@ -79,55 +80,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       console.error('Error al obtener vuelos:', error);
     }
   };
-  /*const fetchServicios = async () => {
-    try {
-      console.log(escalasociadaid);
-      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
-      console.log('Tamaño de datos: ', response.data.length);
-      let booleanoServicios;
-      console.log(response.data);
-      if (response.data.length === 0) {
-        console.log("La lista de servicios está vacía.");
-        booleanoServicios = false;
-      } else {
-        console.log("La lista de servicios contiene datos.");
-        setServiciosLista(response.data);
-        booleanoServicios = true;
-      }
-      Se chequea que la escala tenga o no tenga servicios para agregarlos todos
-      console.log('ID de la escala seleccionada:', escalasociadaid);
-      console.log('isFetchedSvicios: ', booleanoServicios);
-      if (!booleanoServicios) {
-
-        const fetchServiciosPuerto = async () => {
-          try {
-            console.log('Segundo log', selectedEscalaPuerto); // Verificar el puerto
-            const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${selectedEscalaPuerto}`);
-
-            Transformar el listado para solo tener 'nombre' y 'idescala'
-            const serviciosTransformados = response.data.map(servicio => ({
-              nombre: servicio.nombre,
-              idescala: escalasociadaid  // idescala es igual a escala.id
-            }));
-            console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
-            console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
-
-            console.log('Datos enviados al servidor:', serviciosTransformados);
-            Cambiar el formato enviado al servidor
-            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
-              servicios: serviciosTransformados
-            })
-
-          } catch (error) {
-            console.error('Error al obtener servicios puertos:', error);
-          }
-        };
-        fetchServiciosPuerto();
-      };
-    } catch (error) {
-      console.error('Error al obtener vuelos:', error);
-    }
-  };*/
+  
 
   const handleOpenSelect = async () => {
 
