@@ -11,17 +11,17 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const [serviciosmodal, setServiciosModal] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
-
+  const idEscala = id
   const itemsPerPage = 25;
 
   useEffect(() => {
-      fetchServiciosModal(id);
+      fetchServiciosModal();
   }, []);
 
   const fetchServiciosModal = async () => {
     try {
-      console.log(id);
-      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${id}`);
+      console.log(idEscala);
+      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${idEscala}`);
       console.log('log en modal', response.data);
       setServiciosModal(response.data);
     } catch (error) {
@@ -31,17 +31,21 @@ const EscalaListaServicios = ({ id, closeModal }) => {
  
 
   const handleAgregarServicio = async (e) => {
-      e.preventDefault();
-      try {
-        await axios.post(`${environment.API_URL}escalas/agregarservicio`, { id, serviciomodal });
-          setServicioModal('');
-          fetchServicios();
-      } catch (error) {
-          setError('Error al agregar el servicio');
-          console.error(error);
-      }
-  };
-
+    e.preventDefault();
+    const servicio = serviciomodal;
+    try {
+        const response = await axios.post(
+            `${environment.API_URL}escalas/agregarservicio`,
+            { idEscala, servicio }
+        );
+        console.log('Servicio agregado:', response.data); // Asegúrate de verificar la respuesta
+        setServicioModal('');
+        await fetchServiciosModal(); // Espera hasta que se obtengan los nuevos servicios
+    } catch (error) {
+        setError('Error al agregar el servicio');
+        console.error(error);
+    }
+};
   const handleEliminarServicio = async (idServicio) => {
     try {
         const response = await axios.delete(`${environment.API_URL}escalas/eliminarservicio/${idServicio}`);
@@ -89,7 +93,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
             </tr>
           </thead>
           <tbody>
-            {displayedItems.map((row) => (
+            {serviciosmodal.map((row) => (
               <tr key={row.idservicio}>
                 <td>{row.nombre}</td>
                 <td>

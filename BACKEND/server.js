@@ -55,7 +55,7 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL');
 });
-const AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
+const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
 /*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
 const containerNCClient = blobServiceClient.getContainerClient('nc');*/
@@ -330,17 +330,19 @@ app.post('/api/Agregarfactura', async (req, res) => {
     const blobName = req.files.fileFactura.name; // Use original file name
     const containerClient = blobServiceClient.getContainerClient(containerName);
     const contentType = 'application/pdf'; // Get MIME type from the uploaded file
-    
+
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     console.log(req.files.fileFactura);
-   
+
 
     // Upload file to Azure Blob Storage
-    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {blobHTTPHeaders: {
-      blobContentType: contentType, // Set Content-Type explicitly
-    },});
+    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
+    });
     archivosSubidos.fileFacturaUrl = `https://buquesinvoicestorage.blob.core.windows.net/invoices/${archivoFactura.name}`; // Guardamos la ruta del archivo
-    
+
   }
 
   // Verificar si 'fileNC' existe y moverlo
@@ -353,15 +355,17 @@ app.post('/api/Agregarfactura', async (req, res) => {
     const contentType = 'application/pdf'; // Get MIME type from the uploaded file
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     console.log(req.files.fileNC.name);
-   
+
 
     // Upload file to Azure Blob Storage
-    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length,{blobHTTPHeaders: {
-      blobContentType: contentType, // Set Content-Type explicitly
-    },});
+    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
+    });
     archivosSubidos.fileNCUrl = `https://buquesinvoicestorage.blob.core.windows.net/notascredito/${archivoNC.name}`; // Guardamos la ruta del archivo
 
-    
+
   }
 
   // Esperar que se muevan los archivos y luego responder
@@ -799,21 +803,21 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
 // Endpoint para eliminar una factura
 app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
   const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
- 
+
   // Consulta SQL para eliminar la factura de la base de datos
   const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
- 
+
   connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
     if (err) {
       console.error('Error al eliminar la factura svicios:', err);
       return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
     }
- 
+
     if (results.affectedRows === 0) {
       // Si no se eliminó ninguna fila, significa que no se encontró la factura
       return res.status(404).json({ error: 'Factura servicis no encontrada' });
     }
- 
+
     // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
     res.json({ message: 'Factura eliminada con éxito' });
   });
@@ -836,7 +840,11 @@ app.post('/api/escalas/agregarservicio', (req, res) => {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });
     }
-
+    // Respuesta indicando éxito en la adición del servicio
+    res.status(200).json({
+      message: 'Servicio agregado con éxito',
+      servicioId: results.insertId,
+    });
     // Respuesta indicando éxito en la adición del servicio
     console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
   });
@@ -934,13 +942,13 @@ app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
 app.post('/api/insertserviciospuertos', (req, res) => {
   console.log('Cuerpo de la solicitud:', req.body);  // Verificar el contenido
   const servicios = req.body.servicios;
- 
+
   if (!servicios || !Array.isArray(servicios)) {
     return res.status(400).json({ error: 'La lista de servicios es requerida' });
   }
- 
+
   const query = 'INSERT INTO serviciosescalas (nombre, idescala) VALUES (?, ?)';
- 
+
   // Utilizar una transacción o Promise.all para manejar múltiples inserciones
   const promises = servicios.map((servicio) => {
     const { idescala, nombre } = servicio;
@@ -951,7 +959,7 @@ app.post('/api/insertserviciospuertos', (req, res) => {
       });
     });
   });
- 
+
   Promise.all(promises)
     .then((results) => {
       res.json({ message: 'Servicios agregados con éxito', serviciosIds: results.map(r => r.insertId) });
@@ -1047,11 +1055,11 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       const blobClient = containerClient.getBlobClient(blobName);
       const downloadBlockBlobResponse = await blobClient.download();
       const chunks = [];
-    
+
       for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
         chunks.push(chunk);
       }
-    
+
       return Buffer.concat(chunks);
     };
 
@@ -1190,11 +1198,11 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       const blobClient = containerClient.getBlobClient(blobName);
       const downloadBlockBlobResponse = await blobClient.download();
       const chunks = [];
-    
+
       for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
         chunks.push(chunk);
       }
-    
+
       return Buffer.concat(chunks);
     };
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
