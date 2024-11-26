@@ -798,17 +798,17 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
 
 // Endpoint para agregar un servicio a una escala
 app.post('/api/escalas/agregarservicio', (req, res) => {
-  const { idEscala, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
+  const { idescala, nombre } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
   console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
 
 
-  if (!idEscala || !servicio) {
+  if (!idescala || !nombre) {
     return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
   }
 
   const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
 
-  connectionbuquesinvoice.query(query, [idEscala, servicio], (err, results) => {
+  connectionbuquesinvoice.query(query, [idescala, nombre], (err, results) => {
     if (err) {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });
@@ -1529,4 +1529,27 @@ app.post('/api/actualizarurgencia', (req, res) => {
 
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');
+});
+
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+
+  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura svicios:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
+    }
+
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+    }
+
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
 });

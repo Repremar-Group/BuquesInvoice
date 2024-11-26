@@ -159,32 +159,6 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     setSearchTermEscalaAsociada(escala.buque + ", ETA: " + escala.eta); // Muestra el nombre seleccionado en el input
     setEscalaAsociadaId(escala.id);
     setIsModalOpenEscala(false); // Cierra el modal
-
-
-      const fetchServiciosPuerto = async () => {
-        try {
-          console.log('Segundo log', escala.id_puerto); // Verificar el puerto
-          const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${escala.id_puerto}`);
-
-          // Transformar el listado para solo tener 'nombre' y 'idescala'
-          const serviciosTransformados = response.data.map(servicio => ({
-            nombre: servicio.nombre,
-            idescala: escala.id  // idescala es igual a escala.id
-          }));
-          console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
-          console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
-
-          console.log('Datos enviados al servidor:', serviciosTransformados);
-          // Cambiar el formato enviado al servidor
-          const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
-            servicios: serviciosTransformados
-          })
-
-        } catch (error) {
-          console.error('Error al obtener servicios puertos:', error);
-        }
-      };
-      fetchServiciosPuerto();
     };
   
 

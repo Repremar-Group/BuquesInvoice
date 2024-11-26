@@ -12,7 +12,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
 
-  const itemsPerPage = 25;
+  const itemsPerPage = 500;
 
   useEffect(() => {
       fetchServiciosModal(id);
@@ -24,6 +24,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
       const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${id}`);
       console.log('log en modal', response.data);
       setServiciosModal(response.data);
+      console.log('serviciomodal', serviciosmodal);
     } catch (error) {
       console.error('Error al obtener servicios:', error);
     }
@@ -33,12 +34,16 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const handleAgregarServicio = async (e) => {
       e.preventDefault();
       try {
-        await axios.post(`${environment.API_URL}escalas/agregarservicio`, { id, serviciomodal });
+        const idescala = id;
+        const nombre = serviciomodal;
+        await axios.post(`${environment.API_URL}escalas/agregarservicio`, { idescala, nombre });
           setServicioModal('');
-          fetchServicios();
       } catch (error) {
           setError('Error al agregar el servicio');
           console.error(error);
+      } finally {
+        fetchServiciosModal(idescala);
+        console.log('finally lpm que ande')
       }
   };
 
@@ -46,16 +51,14 @@ const EscalaListaServicios = ({ id, closeModal }) => {
     try {
         const response = await axios.delete(`${environment.API_URL}escalas/eliminarservicio/${idServicio}`);
         console.log(response.data);  // Verifica la respuesta del servidor
-        fetchServiciosModal();
     } catch (error) {
         console.error('Error al eliminar el servicio:', error);
         setError('Error al eliminar el servicio');
     }
   };
 
-  const filteredData = serviciosmodal.filter((row) =>
-      row.nombre.toLowerCase().includes(nombre.toLowerCase())
-  );
+  const filteredData = serviciosmodal;
+
 
   const pageCount = Math.ceil(filteredData.length / itemsPerPage);
   const displayedItems = filteredData.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);

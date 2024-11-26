@@ -321,10 +321,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                     estado: "Anulado", // O el estado que corresponda
                     gia: 0,
                     pre_aprobado: isPreAprobada ? 1 : 0,
-                    servicios: servicios};
-
-
-                    
+                    servicios: servicios};               
 
                 } else {
                     facturaData = {
