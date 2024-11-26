@@ -12,7 +12,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
   const idEscala = id
-  const itemsPerPage = 25;
+  const itemsPerPage = 2000;
 
   useEffect(() => {
       fetchServiciosModal();
