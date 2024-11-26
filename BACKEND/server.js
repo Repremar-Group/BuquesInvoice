@@ -796,6 +796,29 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
   });
 });
 
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+ 
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+ 
+  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura svicios:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
+    }
+ 
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+    }
+ 
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
+});
+
 // Endpoint para agregar un servicio a una escala
 app.post('/api/escalas/agregarservicio', (req, res) => {
   const { idEscala, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
@@ -1016,6 +1039,22 @@ const queryPromise = (query, connection) => {
 
 app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
+    //Funcion para descargar pdfs desde azure
+    const downloadBlobToBuffer = async (blobName) => {
+      const containerName = 'invoices'; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
+    
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+    
+      return Buffer.concat(chunks);
+    };
+
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado ----Cambie esto ayer
     const queryFacturas = `
       SELECT 
@@ -1110,8 +1149,8 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
           const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           pdfDocSinNC.addPage(facturaPdfPage);
@@ -1144,6 +1183,20 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 //Endpoint que genera el con sin notas de credito
 app.get('/api/exportarpdfconnotas', async (req, res) => {
   try {
+    const downloadBlobToBuffer = async (blobName, containerNamerecibido) => {
+      const containerName = containerNamerecibido; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
+    
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+    
+      return Buffer.concat(chunks);
+    };
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
       SELECT 
@@ -1240,18 +1293,21 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       // Agregar únicamente las facturas al PDF
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const containerNamefacturas = "invoices";
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName, containerNamefacturas);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
           const [facturaPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           pdfDocConNC.addPage(facturaPdfPage);
+
         }
 
         if (factura.url_notacredito) {
-          const notaCreditoPdfPath = path.join(__dirname, '..', 'public', factura.url_notacredito);
-          const notaCreditoPdfBytes = fs.readFileSync(notaCreditoPdfPath);
-          const notaCreditoPdfDoc = await PDFDocument.load(notaCreditoPdfBytes);
-          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(notaCreditoPdfDoc, notaCreditoPdfDoc.getPageIndices());
+          const containerNamenotas = "notascredito";
+          const blobName = factura.url_notacredito.split('/').pop();
+          const notaPdfBytes = await downloadBlobToBuffer(blobName, containerNamenotas);
+          const facturaPdfDoc = await PDFDocument.load(notaPdfBytes);
+          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           pdfDocConNC.addPage(notaCreditoPdfPage);
         }
         // Guardar el ID de la factura para actualizar después
