@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ReactPaginate from 'react-paginate';
 import './previewescalas.css';
+import { environment } from '../../environment';
 
 const EscalaListaServicios = ({ id, closeModal }) => {
 
@@ -20,7 +21,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const fetchServiciosModal = async () => {
     try {
       console.log(id);
-      const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${id}`);
+      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${id}`);
       console.log('log en modal', response.data);
       setServiciosModal(response.data);
     } catch (error) {
@@ -32,7 +33,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
   const handleAgregarServicio = async (e) => {
       e.preventDefault();
       try {
-        await axios.post('http://localhost:5000/api/escalas/agregarservicio', { id, serviciomodal });
+        await axios.post(`${environment.API_URL}escalas/agregarservicio`, { id, serviciomodal });
           setServicioModal('');
           fetchServicios();
       } catch (error) {
@@ -43,7 +44,7 @@ const EscalaListaServicios = ({ id, closeModal }) => {
 
   const handleEliminarServicio = async (idServicio) => {
     try {
-        const response = await axios.delete(`http://localhost:5000/api/escalas/eliminarservicio/${idServicio}`);
+        const response = await axios.delete(`${environment.API_URL}escalas/eliminarservicio/${idServicio}`);
         console.log(response.data);  // Verifica la respuesta del servidor
         fetchServiciosModal();
     } catch (error) {

@@ -37,12 +37,12 @@ const LoginForm = ({ onLoginSuccess }) => {
             // Solo almacenar idOperador si existe en el objeto del usuario
             if (usuarioEncontrado.idoperador) {
                 localStorage.setItem('idOperador', usuarioEncontrado.idoperador);
-                localStorage.setItem('usuario', usuarioEncontrado.usuario);
-            }if (usuarioEncontrado.rol) {
-                localStorage.setItem('rol', usuarioEncontrado.rol);
-                localStorage.setItem('usuario', usuarioEncontrado.usuario);
             }
-
+            if (usuarioEncontrado.rol) {
+                localStorage.setItem('rol', usuarioEncontrado.rol);
+            }
+            // Almacenar el usuario en todos los casos
+            localStorage.setItem('usuario', usuarioEncontrado.usuario)
             onLoginSuccess();
             navigate('/home');
         } else {

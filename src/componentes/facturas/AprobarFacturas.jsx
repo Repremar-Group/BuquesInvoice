@@ -3,6 +3,7 @@ import axios from 'axios';
 import './Facturas.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { environment } from '../../environment';
 
 const AprobarFacturas = ({ isLoggedIn }) => {
   const [facturas, setFacturas] = useState([]);
@@ -29,7 +30,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   useEffect(() => {
     const obtenerOperadores = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/obteneroperadores');
+        const response = await axios.get(`${environment.API_URL}obteneroperadores`);
         setOperadores(response.data);  // Almacena los operadores en el estado
       } catch (error) {
         console.error('Error al obtener los operadores:', error);
@@ -47,7 +48,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
 
       const obtenerServicios = async () => {
         try {
-          const response = await axios.get(`http://localhost:5000/api/obtenerservicios/${facturaActual.idfacturas}`);
+          const response = await axios.get(`${environment.API_URL}obtenerservicios/${facturaActual.idfacturas}`);
           setServicios(response.data); // Actualiza el estado con los servicios recibidos
           console.log('Servicios asociados:', response.data); // Verifica los servicios obtenidos
         } catch (error) {
@@ -68,7 +69,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       const obtenerEscala = async () => {
         try {
           // Hacemos una solicitud a previewescalas para obtener las escalas
-          const response = await axios.get('http://localhost:5000/api/previewescalas');
+          const response = await axios.get(`${environment.API_URL}previewescalas`);
           console.log('Escalas recibidas:', response.data);  // Verifica que los datos están llegando correctamente
 
           // Filtrar la escala que coincide con el id_escala de la factura
@@ -184,7 +185,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       setEscala(null);  // Limpia los datos de la escala
       setIndiceFacturaActual(0);
 
-      axios.get('http://localhost:5000/api/obtenerfacturas', {
+      axios.get(`${environment.API_URL}obtenerfacturas`, {
         params: { id_operador: operador }
       })
         .then((response) => {
@@ -220,7 +221,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     } else {
       // Si el estado no es "Requiere NC", primero actualizamos el estado del servicio
       try {
-        await axios.put(`http://localhost:5000/api/actualizarestadoservicios/${idServicio}`, { estado: nuevoEstado });
+        await axios.put(`${environment.API_URL}actualizarestadoservicios/${idServicio}`, { estado: nuevoEstado });
 
         setServicios((prevServicios) =>
           prevServicios.map((servicio) =>
@@ -229,12 +230,12 @@ const AprobarFacturas = ({ isLoggedIn }) => {
         );
 
         // Actualizamos el estado de la factura
-        await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`, {
+        await axios.put(`${environment.API_URL}facturas/${facturaActual.idfacturas}/actualizar-estado`, {
           cambioestadouser: usuario,  // Enviar el usuario
           fechacambioestado: fechaActual // Enviar la fecha
         });
 
-        const response = await axios.get(`http://localhost:5000/api/obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
+        const response = await axios.get(`${environment.API_URL}obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
 
         setFacturaActual(response.data);
 
@@ -274,11 +275,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     }
     try {
       // Envía los comentarios a la base de datos
-      await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/agregarcomentario`, {
+      await axios.put(`${environment.API_URL}facturas/${facturaActual.idfacturas}/agregarcomentario`, {
         comentario: comentarios,
       });
 
-      await axios.put(`http://localhost:5000/api/actualizarestadoservicios/${idServicioSeleccionado}`, { estado: "Requiere NC" });
+      await axios.put(`${environment.API_URL}actualizarestadoservicios/${idServicioSeleccionado}`, { estado: "Requiere NC" });
 
       setServicios((prevServicios) =>
         prevServicios.map((servicio) =>
@@ -287,11 +288,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       );
 
       // Actualizamos el estado de la factura
-      await axios.put(`http://localhost:5000/api/facturas/${facturaActual.idfacturas}/actualizar-estado`, {
+      await axios.put(`${environment.API_URL}facturas/${facturaActual.idfacturas}/actualizar-estado`, {
         cambioestadouser: usuario,  // Enviar el usuario
         fechacambioestado: fechaActual // Enviar la fecha
       });
-      const response = await axios.get(`http://localhost:5000/api/obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
+      const response = await axios.get(`${environment.API_URL}obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
 
       // Verifica si la respuesta contiene los datos actualizados correctamente
       if (response.data && response.data.comentarios) {

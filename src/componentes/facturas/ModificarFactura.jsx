@@ -5,6 +5,7 @@ import axios from 'axios';
 import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
 import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
 import { toast, ToastContainer } from 'react-toastify';
+import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ModificarFactura = ({ closeModal, Id }) => {
@@ -23,6 +24,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const [moneda, setMoneda] = useState('');
     const [monto, setMonto] = useState('');
     const [isPreAprobada, setIsPreAprobada] = useState(false);
+    const [isAnular, setIsAnular] = useState(false);
 
     const [selectedFileFactura, setSelectedFileFactura] = useState(null);
     const [selectedFileNC, setSelectedFileNC] = useState(null);
@@ -33,7 +35,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
     const fetchfacturaData = async (Id) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/obtenerfactura/${Id}`);
+            const response = await axios.get(`${environment.API_URL}obtenerfactura/${Id}`);
             const facturaData = response.data;
             console.log(facturaData)
             // Establecer los datos en el estado del componente
@@ -58,9 +60,10 @@ const ModificarFactura = ({ closeModal, Id }) => {
             toast.error('Error al obtener los datos del cliente');
         }
     };
+
     const fetchServiciosAsociados = async (Id) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/obtenerservicios/${Id}`);
+            const response = await axios.get(`${environment.API_URL}obtenerservicios/${Id}`);
             const servicios = response.data;
             console.log(servicios)
             setServicios(servicios);  // Guardamos los servicios en el array
@@ -81,7 +84,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const fetchServicios = async () => {
         try {
             console.log(escalasociadaid);
-            const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${searchTermEscalaAsociada}`);
+            const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${searchTermEscalaAsociada}`);
             console.log(response.data);
             setServiciosLista(response.data);
             setIsFetchedServicios(true); // Indica que ya se obtuvieron los datos
@@ -92,11 +95,11 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const handleServicioChange = (e) => {
         const selectedServicio = e.target.value;
         setNuevoServicio(prevState => ({
-          ...prevState,
-          servicio: selectedServicio
+            ...prevState,
+            servicio: selectedServicio
         }));
-      };
-      
+    };
+
 
     //Estados para la busqeuda de proveedores
     const [searchTermProveedor, setSearchTermProveedor] = useState('');
@@ -111,7 +114,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (e.key === 'Enter' && searchTermProveedor.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/obtenerproveedor?search=${searchTermProveedor}`);
+                const response = await axios.get(`${environment.API_URL}obtenerproveedor?search=${searchTermProveedor}`);
                 setFilteredProveedores(response.data);
                 setIsModalOpenProveedor(true); // Abre el modal con los resultados
             } catch (error) {
@@ -146,7 +149,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         if (e.key === 'Enter' && searchTermEscalaAsociada.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/buscarescalaasociada`, {
+                const response = await axios.get(`${environment.API_URL}buscarescalaasociada`, {
                     params: { searchTermEscalaAsociada },
                 });
                 setFilteredEscalas(response.data);
@@ -168,6 +171,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
         console.log('ID de la escala seleccionada:', escala.id);
     };
 
+
     // Cerrar modal
     const closeModalEscala = () => setIsModalOpenEscala(false);
 
@@ -178,21 +182,50 @@ const ModificarFactura = ({ closeModal, Id }) => {
         estado: 'Pendiente', // Estado inicial
     });
     //---------------------------------------------------------------------------------------------------------------------------------
+    // Declarar el estado fuera de la función
+    const [nuevoServicioAgregado, setNuevoServicioAgregado] = useState({
+        nombre: '',
+        estado: '',
+    });
+    const [serviciomodal, setServicioModal] = useState('');
 
+
+    const handleAgregarServicioEscala = async (e) => {
+        e.preventDefault();
+        try {
+            const serviciomodalToUpper = serviciomodal.toUpperCase();
+            const selectedEscalaId = escalasociadaid;
+            console.log('Escala Id agregar servicio: ', selectedEscalaId);
+            console.log('Nombre servicio agregar servicio: ', serviciomodalToUpper);
+
+            // Configurar el nuevo servicio y agregarlo a la lista
+            const servicio = { servicio: serviciomodal.toUpperCase(), estado: 'Pendiente' };
+            setNuevoServicioAgregado(servicio);
+            setServicios([...servicios, servicio]);
+            console.log('Nuevo Servicio Agregado: ', servicio);
+            console.log('Servicios lista: ', servicios);
+
+            // Realizar la solicitud al backend
+
+            await axios.post(`${environment.API_URL}escalas/agregarservicio2}`, { selectedEscalaId, serviciomodalToUpper });
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     // Función para agregar un nuevo servicio al array
     const handleAgregarServicio = () => {
         if (nuevoServicio.servicio) {
-          setServicios(prevServicios => {
-            const nuevosServicios = [...prevServicios, nuevoServicio];
-            console.log('servicios después de agregar', nuevosServicios);
-            return nuevosServicios;
-          });
-          setNuevoServicio({ servicio: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
+            setServicios(prevServicios => {
+                const nuevosServicios = [...prevServicios, nuevoServicio];
+                console.log('servicios después de agregar', nuevosServicios);
+                return nuevosServicios;
+            });
+            setNuevoServicio({ servicio: '', estado: 'Pendiente' }); // Limpiar campos después de agregar
         } else {
-          toast.error('Por favor, Seleccione un servicio');
+            toast.error('Por favor, Seleccione un servicio');
         }
-      };
+    };
 
     // Función para manejar la eliminación de un servicio
     const handleEliminarServicio = (index) => {
@@ -225,6 +258,12 @@ const ModificarFactura = ({ closeModal, Id }) => {
     const handleCheckboxChangePreAprobada = () => {
         setIsPreAprobada(!isPreAprobada);
     };
+
+    const handleAnularCheckbox = () => {
+        setIsAnular(!isAnular);
+        console.log(isAnular);
+    }
+    
     useEffect(() => {
         const icfechaactual = new Date().toISOString().split("T")[0]; // Obtiene la fecha actual en formato YYYY-MM-DD
         setFecha(icfechaactual);
@@ -242,7 +281,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 const formData = new FormData();
                 formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
 
-                const fileResponse = await axios.post('http://localhost:5000/api/Agregarfactura', formData, {
+                const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -256,7 +295,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 const formDataNC = new FormData();
                 formDataNC.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
 
-                const fileResponseNC = await axios.post('http://localhost:5000/api/Agregarfactura', formDataNC, {
+                const fileResponseNC = await axios.post(`${environment.API_URL}Agregarfactura`, formDataNC, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -266,25 +305,47 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 ncUrl = fileResponseNC.data.files?.fileNCUrl || '';
             }
 
+            let facturaData;
             // Segundo paso: Modificar los datos de la factura
-            const facturaData = {
-                idfactura: facturamodificar, // ID de la factura a modificar
-                numero: nrofactura,
-                fecha: fecha,
-                moneda: moneda,
-                monto: monto,
-                escala_asociada: escalasociadaid,
-                proveedor: searchTermProveedor,
-                url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
-                url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
-                estado: "Pendiente", // O el estado que corresponda
-                gia: 0,
-                pre_aprobado: isPreAprobada ? 1 : 0,
-                servicios: servicios,
-            };
+            if (isAnular) {
+                facturaData = {
+                    idfactura: facturamodificar, // ID de la factura a modificar
+                    numero: nrofactura,
+                    fecha: fecha,
+                    moneda: moneda,
+                    monto: monto,
+                    escala_asociada: escalasociadaid,
+                    proveedor: searchTermProveedor,
+                    url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
+                    url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
+                    estado: "Anulado", // O el estado que corresponda
+                    gia: 0,
+                    pre_aprobado: isPreAprobada ? 1 : 0,
+                    servicios: servicios};
+
+
+                    
+
+                } else {
+                    facturaData = {
+                        idfactura: facturamodificar, // ID de la factura a modificar
+                        numero: nrofactura,
+                        fecha: fecha,
+                        moneda: moneda,
+                        monto: monto,
+                        escala_asociada: escalasociadaid,
+                        proveedor: searchTermProveedor,
+                        url_factura: facturaUrl || facturaUrlActual, // Usa la URL existente si no se sube un nuevo archivo
+                        url_notacredito: ncUrl || ncUrlActual, // Lo mismo con la nota de crédito
+                        estado: "Pendiente", // O el estado que corresponda
+                        gia: 0,
+                        pre_aprobado: isPreAprobada ? 1 : 0,
+                        servicios: servicios,
+                    }
+                };
 
             // Enviar la solicitud para actualizar la factura
-            const facturaResponse = await axios.put('http://localhost:5000/api/modificarfactura', facturaData, {
+            const facturaResponse = await axios.put(`${environment.API_URL}modificarfactura`, facturaData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -294,13 +355,21 @@ const ModificarFactura = ({ closeModal, Id }) => {
 
             // Retrasar el cierre del modal para permitir que el toast se muestre
             setTimeout(() => {
-              closeModal();
+                closeModal();
             }, 3000);
+
+            if (isAnular) {
+                console.log('factura a modificar',facturamodificar);
+                    const idfactura = facturamodificar;
+                    const response4 = await axios.delete(`${environment.API_URL}eliminarserviciosfactura${idfactura}`);
+                    console.log('Respuesta del servidor:', response4.data);
+            }
 
         } catch (error) {
             console.error("Error durante el proceso:", error);
             toast.error("Error al modificar la factura");
         }
+
     };
 
 
@@ -322,7 +391,8 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                     type="text"
                                     id="ecID"
                                     value={nrofactura}
-                                    onChange={(e) => setNroFactura(e.target.value)}
+                                    onChange={(e) => setNroFactura(e.target.value)
+                                    }
                                     required
                                 />
                             </div>
@@ -345,6 +415,15 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                         id="preAprobadaCheckbox"
                                         checked={isPreAprobada}
                                         onChange={handleCheckboxChangePreAprobada}
+                                    />
+                                </label>
+                                <label htmlFor="AnularCheckbox" className="factura-label">
+                                    NC Total
+                                    <input
+                                        type="checkbox"
+                                        id="AnularCheckbox"
+                                        checked={isAnular}
+                                        onChange={handleAnularCheckbox} // Actualiza el estado
                                     />
                                 </label>
                             </div>
@@ -443,6 +522,16 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                             <option key={index} value={servicio.nombre}>{servicio.nombre}</option>
                                         ))}
                                     </select>
+                                    <p></p>
+                                    <div className='div-parametros'>
+                                        <input className='input_buscar'
+                                            type="text"
+                                            placeholder="Agregar Servicio"
+                                            value={serviciomodal}
+                                            onChange={(e) => setServicioModal(e.target.value)}
+                                        />
+                                        <button className="add-button" onClick={handleAgregarServicioEscala}>➕</button>
+                                    </div>
                                 </div>
 
                                 <label >Estado:</label>
@@ -452,7 +541,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                                     readOnly
                                 >
                                     <option value="Pendiente">Pendiente</option>
-                                    
+
                                 </select>
 
                                 <button className="btn-estandar" type="button" onClick={handleAgregarServicio}>Agregar Servicio</button>
@@ -510,7 +599,7 @@ const ModificarFactura = ({ closeModal, Id }) => {
                 handleSelectProveedor={handleSelectProveedor}
             />
             <ToastContainer
-        />
+            />
         </div>
     );
 }
