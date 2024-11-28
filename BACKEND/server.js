@@ -1160,8 +1160,10 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
           const blobName = factura.url_factura.split('/').pop();
           const facturaPdfBytes = await downloadBlobToBuffer(blobName);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocSinNC.addPage(facturaPdfPage);
+
+          // Copiar todas las páginas de la factura al documento principal
+          const facturaPdfPages = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocSinNC.addPage(page));
 
           // Guardar el ID de la factura para actualizar después
           facturasProcesadas.push(factura.idfacturas);
@@ -1305,19 +1307,23 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           const blobName = factura.url_factura.split('/').pop();
           const facturaPdfBytes = await downloadBlobToBuffer(blobName, containerNamefacturas);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(facturaPdfPage);
-
+          
+          // Copiar todas las páginas del documento de factura
+          const facturaPdfPages = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
-
+      
         if (factura.url_notacredito) {
           const containerNamenotas = "notascredito";
           const blobName = factura.url_notacredito.split('/').pop();
           const notaPdfBytes = await downloadBlobToBuffer(blobName, containerNamenotas);
-          const facturaPdfDoc = await PDFDocument.load(notaPdfBytes);
-          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(notaCreditoPdfPage);
+          const notaPdfDoc = await PDFDocument.load(notaPdfBytes);
+          
+          // Copiar todas las páginas del documento de nota de crédito
+          const notaPdfPages = await pdfDocConNC.copyPages(notaPdfDoc, notaPdfDoc.getPageIndices());
+          notaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
+      
         // Guardar el ID de la factura para actualizar después
         facturasProcesadas.push(factura.idfacturas);
       }
