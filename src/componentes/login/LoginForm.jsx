@@ -22,7 +22,8 @@ const LoginForm = ({ onLoginSuccess }) => {
         { usuario: "dremigio", contraseña: "dr3mig1o1372", rol:'contable'},
         { usuario: "pporra", contraseña: "paola", rol:'contable' },
         { usuario: "jchaud", contraseña: "jeanette", rol:'liquidacion' },
-        { usuario: "sdacosta", contraseña: "sd4cost41372", rol:'contable' }
+        { usuario: "sdacosta", contraseña: "sd4cost41372", rol:'contable' },
+        { usuario: "mjvega", contraseña: "mjv3g41372", rol:'liquidacion' }
     ];
     // Manejar el evento de submit
     const handleSubmit = (e) => {
