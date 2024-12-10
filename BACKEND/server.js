@@ -3,6 +3,11 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const cors = require('cors');
 const mysql = require('mysql');
+const Busboy = require('busboy');
+
+const multer = require('multer'); // Middleware para manejar la carga de archivos
+const { BlobServiceClient } = require('@azure/storage-blob');
+
 
 //Constantes para manejar las caratulas con pdflib
 const { PDFDocument, rgb } = require('pdf-lib');
@@ -50,6 +55,11 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL');
 });
+const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
+/*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
+const containerNCClient = blobServiceClient.getContainerClient('nc');*/
+const upload = multer({ storage: multer.memoryStorage() });
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
@@ -59,7 +69,7 @@ app.get('/api/obtenerfactura/:id', (req, res) => {
   const { id } = req.params;
   console.log(`ID recibido en el endpoint: ${id}`);
   const query = `
-    SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor,
+    SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, 
            url_factura, url_notacredito, estado, gia, pre_aprobado, comentarios
     FROM facturas
     WHERE idfacturas = ?
@@ -104,8 +114,8 @@ app.post('/api/insertardatosfactura', (req, res) => {
 
     // Insertar la factura
     const sqlFactura = `
-      INSERT INTO facturas
-      (numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado)
+      INSERT INTO facturas 
+      (numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const valuesFactura = [numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado];
@@ -122,7 +132,7 @@ app.post('/api/insertardatosfactura', (req, res) => {
 
       // Insertar los servicios asociados
       const sqlServicios = `
-        INSERT INTO serviciosfacturas (nombre, estado, idfactura)
+        INSERT INTO serviciosfacturas (nombre, estado, idfactura) 
         VALUES ?
       `;
       const serviciosValues = servicios.map(servicio => [
@@ -170,7 +180,6 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
     if (err) {
       return res.status(500).json({ error: 'Error en la consulta de servicios' });
     }
-    console.log('Servicios: ', results.length);
     res.json(results); // Devuelve los servicios encontrados
   });
 });
@@ -189,19 +198,19 @@ app.get('/api/obtenerproveedor', (req, res) => {
 });
 
 
-//Endpoint para obtener el listado de facturas
+//Endpoint para obtener el listado de facturas 
 app.get('/api/previewfacturas', (req, res) => {
   // Consulta SQL para obtener las facturas y sus datos relacionados
   const query = `
-  SELECT
-    idfacturas,
-    numero,
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
-    moneda,
-    monto,
-    escala_asociada,
-    proveedor,
-    estado,
+  SELECT 
+    idfacturas, 
+    numero, 
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
+    moneda, 
+    monto, 
+    escala_asociada, 
+    proveedor, 
+    estado, 
     gia,
     url_factura,
     url_notacredito
@@ -231,7 +240,7 @@ app.get('/api/buscarescalaasociada', (req, res) => {
 
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada, filtrado por buque
   const query = `
-    SELECT
+    SELECT 
   itinerarios.id,
   itinerarios.id_puerto,
   DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
@@ -270,7 +279,7 @@ ORDER BY itinerarios.eta DESC;
 app.get('/api/previewescalas', (req, res) => {
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada
   const query = `
-      SELECT
+      SELECT 
         itinerarios.id,
         DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
         lineas.nombre AS linea,
@@ -304,8 +313,7 @@ app.get('/api/previewescalas', (req, res) => {
 //Manejo de archivos para facturas
 // Middleware para manejar el archivo
 app.use(fileUpload());
-//Endpoint para cargar pdfs desde ingreso de facturas
-app.post('/api/Agregarfactura', (req, res) => {
+app.post('/api/Agregarfactura', async (req, res) => {
   // Verificar si se han recibido archivos (puede ser uno o ambos)
   if (!req.files || (!req.files.fileFactura && !req.files.fileNC)) {
     return res.status(400).send('Se requiere al menos un archivo.');
@@ -317,27 +325,47 @@ app.post('/api/Agregarfactura', (req, res) => {
   // Verificar si 'fileFactura' existe y moverlo
   if (req.files.fileFactura) {
     const archivoFactura = req.files.fileFactura;
-    const uploadPathFactura = path.join(__dirname, '..', 'public', 'Facturas', archivoFactura.name);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+    const containerName = 'invoices'; // Replace with your container name
+    const blobName = req.files.fileFactura.name; // Use original file name
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const contentType = 'application/pdf'; // Get MIME type from the uploaded file
 
-    archivoFactura.mv(uploadPathFactura, (err) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      archivosSubidos.fileFacturaUrl = `/Facturas/${archivoFactura.name}`; // Guardamos la ruta del archivo
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    console.log(req.files.fileFactura);
+
+
+    // Upload file to Azure Blob Storage
+    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
     });
+    archivosSubidos.fileFacturaUrl = `https://buquesinvoicestorage.blob.core.windows.net/invoices/${archivoFactura.name}`; // Guardamos la ruta del archivo
+
   }
 
   // Verificar si 'fileNC' existe y moverlo
   if (req.files.fileNC) {
     const archivoNC = req.files.fileNC;
-    const uploadPathNC = path.join(__dirname, '..', 'public', 'Nc', archivoNC.name);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+    const containerName = 'notascredito'; // Replace with your container name
+    const blobName = req.files.fileNC.name; // Use original file name
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const contentType = 'application/pdf'; // Get MIME type from the uploaded file
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    console.log(req.files.fileNC.name);
 
-    archivoNC.mv(uploadPathNC, (err) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      archivosSubidos.fileNCUrl = `/Nc/${archivoNC.name}`; // Guardamos la ruta del archivo
+
+    // Upload file to Azure Blob Storage
+    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
     });
+    archivosSubidos.fileNCUrl = `https://buquesinvoicestorage.blob.core.windows.net/notascredito/${archivoNC.name}`; // Guardamos la ruta del archivo
+
+
   }
 
   // Esperar que se muevan los archivos y luego responder
@@ -348,6 +376,7 @@ app.post('/api/Agregarfactura', (req, res) => {
     });
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
+
 app.listen(5000, () => {
   console.log('Servidor corriendo en el puerto 5000');
 });
@@ -362,7 +391,7 @@ app.get('/api/obtenerfacturas', (req, res) => {
 
   // Consulta para obtener las facturas junto con la información de las escalas
   const query = `
-    SELECT
+    SELECT 
       f.idfacturas,
       f.numero,
       DATE(f.fecha) AS fecha,
@@ -406,7 +435,7 @@ app.get('/api/obtenerfacturas2', (req, res) => {
   // Si se pasa el id_operador, filtrar las facturas basadas en la escala asociada al operador
   const queryEscalas = `
     SELECT id
-    FROM itinerarios
+    FROM itinerarios 
     WHERE id_operador1 = ?;`;
 
   // Usamos la conexión para itinerarios para consultar la tabla itinerarios
@@ -463,7 +492,7 @@ app.get('/api/obtenerservicios/:idfactura', (req, res) => {
   const { idfactura } = req.params;
 
   const query = `
-    SELECT
+    SELECT 
       idserviciosfacturas AS id,
       nombre AS servicio,
       estado
@@ -771,6 +800,29 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
   });
 });
 
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+
+  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura svicios:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
+    }
+
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+    }
+
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
+});
+
 // Endpoint para agregar un servicio a una escala
 app.post('/api/escalas/agregarservicio', (req, res) => {
   const { idEscala, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
@@ -788,7 +840,11 @@ app.post('/api/escalas/agregarservicio', (req, res) => {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });
     }
-
+    // Respuesta indicando éxito en la adición del servicio
+    res.status(200).json({
+      message: 'Servicio agregado con éxito',
+      servicioId: results.insertId,
+    });
     // Respuesta indicando éxito en la adición del servicio
     console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
   });
@@ -826,14 +882,14 @@ app.get('/api/viewescalafacturas/:id', (req, res) => {
 
   const query = `
     SELECT
-    idfacturas,
-    numero,
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
-    moneda,
-    monto,
-    escala_asociada,
-    proveedor,
-    estado,
+    idfacturas, 
+    numero, 
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
+    moneda, 
+    monto, 
+    escala_asociada, 
+    proveedor, 
+    estado, 
     gia,
     url_factura
     FROM facturas
@@ -923,32 +979,32 @@ app.get('/api/viewescalaservicios/:id', (req, res) => {
   console.log(`ID de escala recibido: ${id}`);
 
   const query = `
-    SELECT
+    SELECT 
         sf.nombre AS servicio,
         sf.estado AS estado_servicio,
         f.numero AS factura,
         f.idfacturas AS nro_factura,
         f.estado AS estado_factura,
         f.url_factura AS pdf
-    FROM
+    FROM 
         facturas f
-    INNER JOIN
+    INNER JOIN 
         serviciosfacturas sf ON f.idfacturas = sf.idfactura
-    INNER JOIN
+    INNER JOIN 
         serviciosescalas se ON se.nombre = sf.nombre AND se.idescala = ?
-    WHERE
+    WHERE 
         f.escala_asociada = ?
     UNION ALL
-    SELECT
+    SELECT 
         se.nombre AS servicio,
         'Pendiente' AS estado_servicio,
         NULL AS factura,
         NULL AS nro_factura,
         'Pendiente' AS estado_factura,
         NULL AS pdf
-    FROM
+    FROM 
         serviciosescalas se
-    WHERE
+    WHERE 
         se.idescala = ?
         AND se.nombre NOT IN (
             SELECT sf.nombre
@@ -989,24 +1045,40 @@ const queryPromise = (query, connection) => {
   });
 };
 
-app.get('/api/exportarpdf', async (req, res) => {
+app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
-    // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado
+    //Funcion para descargar pdfs desde azure
+    const downloadBlobToBuffer = async (blobName) => {
+      const containerName = 'invoices'; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
+
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+
+      return Buffer.concat(chunks);
+    };
+
+    // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado ----Cambie esto ayer
     const queryFacturas = `
-      SELECT
-        f.idfacturas,
-        f.numero,
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
-        f.moneda,
-        f.monto,
-        f.escala_asociada,
-        f.proveedor,
-        f.estado,
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
         f.gia,
         f.url_factura,
         f.url_notacredito
       FROM facturas f
-      WHERE f.gia = 0 AND f.estado = 'Aprobado'
+      WHERE f.gia = 0 AND f.estado = 'Aprobado' 
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
@@ -1021,7 +1093,7 @@ app.get('/api/exportarpdf', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT
+      SELECT 
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1061,8 +1133,8 @@ app.get('/api/exportarpdf', async (req, res) => {
     }, {});
 
     // Crear un documento PDF (pdf-lib)
-    const pdfDocConNC = await PDFDocument.create();
-    const font = pdfDocConNC.embedStandardFont('Helvetica');
+    const pdfDocSinNC = await PDFDocument.create();
+    const font = pdfDocSinNC.embedStandardFont('Helvetica');
 
     // Recorrer las escalas y generar las páginas del PDF, (cada iteracion obtiene una escala y sus facturas)
     for (const escalaData of Object.values(escalasConFacturas)) {
@@ -1070,7 +1142,7 @@ app.get('/api/exportarpdf', async (req, res) => {
       const facturas = escalaData.facturas;
 
       // Agregar una página para la carátula de la escala
-      const pageConNC = pdfDocConNC.addPage();
+      const pageConNC = pdfDocSinNC.addPage();
       const { width, height } = pageConNC.getSize();
 
       pageConNC.drawText(`${escala.buque} ${escala.eta}`, {
@@ -1080,29 +1152,27 @@ app.get('/api/exportarpdf', async (req, res) => {
       pageConNC.drawText(`ETA: ${escala.eta}`, { x: 50, y: height - 120, size: 14, font });
       pageConNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
       pageConNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
-
+      // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
+      const facturasProcesadas = [];
       // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(facturaPdfPage);
-        }
 
-        if (factura.url_notacredito) {
-          const notaCreditoPdfPath = path.join(__dirname, '..', 'public', factura.url_notacredito);
-          const notaCreditoPdfBytes = fs.readFileSync(notaCreditoPdfPath);
-          const notaCreditoPdfDoc = await PDFDocument.load(notaCreditoPdfBytes);
-          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(notaCreditoPdfDoc, notaCreditoPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(notaCreditoPdfPage);
+          // Copiar todas las páginas de la factura al documento principal
+          const facturaPdfPages = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocSinNC.addPage(page));
+
+          // Guardar el ID de la factura para actualizar después
+          facturasProcesadas.push(factura.idfacturas);
         }
       }
     }
 
     // Guardar el archivo PDF
-    const pdfBytesConNC = await pdfDocConNC.save();
+    const pdfBytesConNC = await pdfDocSinNC.save();
     const pdfPathConNC = path.join(__dirname, 'temp', 'reporte_facturas_con_NC.pdf');
     fs.writeFileSync(pdfPathConNC, pdfBytesConNC);
 
@@ -1120,33 +1190,43 @@ app.get('/api/exportarpdf', async (req, res) => {
     res.status(500).json({ error: 'Error al generar el archivo PDF' });
   }
 });
-//Endpoint que genera el pdf sin notas de credito
-app.get('/api/exportarpdfsinnotas', async (req, res) => {
+//Endpoint que genera el con sin notas de credito
+app.get('/api/exportarpdfconnotas', async (req, res) => {
   try {
-    const { usuario } = req.query; // Obtener el usuario del parámetro
+    const downloadBlobToBuffer = async (blobName, containerNamerecibido) => {
+      const containerName = containerNamerecibido; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
 
-    if (!usuario) {
-      return res.status(400).json({ error: 'El parámetro usuario es obligatorio.' });
-    }
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+
+      return Buffer.concat(chunks);
+    };
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
-      SELECT
-        f.idfacturas,
-        f.numero,
-        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha,
-        f.moneda,
-        f.monto,
-        f.escala_asociada,
-        f.proveedor,
-        f.estado,
+      SELECT 
+        f.idfacturas, 
+        f.numero, 
+        DATE_FORMAT(f.fecha, '%d-%m-%Y') AS fecha, 
+        f.moneda, 
+        f.monto, 
+        f.escala_asociada, 
+        f.proveedor, 
+        f.estado, 
         f.gia,
-        f.url_factura
+        f.url_factura,
+        f.url_notacredito
       FROM facturas f
-      WHERE f.gia = 0 AND f.estado = 'Aprobado'
+      WHERE f.gia = 0 AND f.estado IN ('Aprobado', 'Anulado')
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
-    // Realizar la consulta a la base de datos
+    // Realizar la consulta a la base de datos 
     const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
     if (!Array.isArray(facturas) || facturas.length === 0) {
       return res.status(404).json({ error: 'No hay facturas para exportar.' });
@@ -1157,7 +1237,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT
+      SELECT 
         itinerarios.id AS escala_id,
         itinerarios.viaje,
         buques.nombre AS buque,
@@ -1197,8 +1277,8 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
     }, {});
 
     // Crear el pdf
-    const pdfDocSinNC = await PDFDocument.create();
-    const font = pdfDocSinNC.embedStandardFont('Helvetica');
+    const pdfDocConNC = await PDFDocument.create();
+    const font = pdfDocConNC.embedStandardFont('Helvetica');
 
     // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
     const facturasProcesadas = [];
@@ -1209,7 +1289,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       const facturas = escalaData.facturas;
 
       // Agregar una página para la carátula de la escala
-      const pageSinNC = pdfDocSinNC.addPage();
+      const pageSinNC = pdfDocConNC.addPage();
       const { width, height } = pageSinNC.getSize();
 
       pageSinNC.drawText(`${escala.buque} ${escala.eta}`, {
@@ -1223,34 +1303,47 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       // Agregar únicamente las facturas al PDF
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const containerNamefacturas = "invoices";
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName, containerNamefacturas);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocSinNC.addPage(facturaPdfPage);
-
-          // Guardar el ID de la factura para actualizar después
-          facturasProcesadas.push(factura.idfacturas);
+          
+          // Copiar todas las páginas del documento de factura
+          const facturaPdfPages = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
+      
+        if (factura.url_notacredito) {
+          const containerNamenotas = "notascredito";
+          const blobName = factura.url_notacredito.split('/').pop();
+          const notaPdfBytes = await downloadBlobToBuffer(blobName, containerNamenotas);
+          const notaPdfDoc = await PDFDocument.load(notaPdfBytes);
+          
+          // Copiar todas las páginas del documento de nota de crédito
+          const notaPdfPages = await pdfDocConNC.copyPages(notaPdfDoc, notaPdfDoc.getPageIndices());
+          notaPdfPages.forEach(page => pdfDocConNC.addPage(page));
+        }
+      
+        // Guardar el ID de la factura para actualizar después
+        facturasProcesadas.push(factura.idfacturas);
       }
+
     }
 
-    // Guardar el archivo
-    const pdfBytesSinNC = await pdfDocSinNC.save();
+    // Guardar el archivo 
+    const pdfBytesSinNC = await pdfDocConNC.save();
     const pdfPathSinNC = path.join(__dirname, 'temp', 'reporte_facturas_sin_NC.pdf');
     fs.writeFileSync(pdfPathSinNC, pdfBytesSinNC);
 
     // Actualizar las facturas en la base de datos para cambiar el valor de gia a 1
     const queryUpdateGia = `
-    UPDATE facturas
-    SET gia = 1,
-        impresionuser = '${usuario}', -- Interpolar el valor directamente
-        impresiondate = NOW()
-    WHERE idfacturas IN (${facturasProcesadas.join(',')});
-  `;
+      UPDATE facturas
+      SET gia = 1
+      WHERE idfacturas IN (${facturasProcesadas.join(',')});
+    `;
 
     await queryPromise(queryUpdateGia, connectionbuquesinvoice);
-    console.log(queryUpdateGia); // Mostrar la consulta generada
+
     // Enviar el PDF como respuesta para descarga
     res.download(pdfPathSinNC, 'reporte_facturas_sin_NC.pdf', (err) => {
       if (err) {
@@ -1296,7 +1389,7 @@ app.get('/api/facturas/pendientes/:idOperador', (req, res) => {
     const queryFacturas = `
           SELECT COUNT(idfacturas) AS pendientes
           FROM facturas
-          WHERE escala_asociada IN (?)
+          WHERE escala_asociada IN (?) 
           AND estado = 'Pendiente'
       `;
 
@@ -1318,24 +1411,26 @@ app.get('/api/escalas/pendientes/:idOperador', (req, res) => {
 
   // 1. Consulta para obtener itinerarios con facturas pendientes en ambas bases de datos
   const query = `
-    SELECT
+   SELECT 
   itinerarios_prod.itinerarios.id,
   DATE_FORMAT(itinerarios_prod.itinerarios.eta, '%d-%m-%Y') AS eta,
-  itinerarios_prod.lineas.nombre AS linea,  -- Aquí debes agregar el prefijo de la base de datos
-  itinerarios_prod.buques.nombre AS buque,  -- También agregar el prefijo
-  itinerarios_prod.puertos.nombre AS puerto, -- Y lo mismo para los demás
+  itinerarios_prod.lineas.nombre AS linea,
+  itinerarios_prod.buques.nombre AS buque,
+  itinerarios_prod.puertos.nombre AS puerto,
   itinerarios_prod.operadores.nombre AS operador,
   itinerarios_prod.itinerarios.id_linea,
   itinerarios_prod.itinerarios.id_buque,
   itinerarios_prod.itinerarios.id_puerto,
-  COUNT(buquesinvoice.facturas.idfacturas) AS facturasPendientes
+  COUNT(buquesinvoice.facturas.idfacturas) AS facturasPendientes,
+  MAX(buquesinvoice.escalasurgentes.esurgente) AS esurgente  -- Usar MAX o MIN
 FROM itinerarios_prod.itinerarios
 LEFT JOIN itinerarios_prod.lineas ON itinerarios_prod.itinerarios.id_linea = itinerarios_prod.lineas.id
 LEFT JOIN itinerarios_prod.buques ON itinerarios_prod.itinerarios.id_buque = itinerarios_prod.buques.id
 LEFT JOIN itinerarios_prod.puertos ON itinerarios_prod.itinerarios.id_puerto = itinerarios_prod.puertos.id
 LEFT JOIN itinerarios_prod.operadores ON itinerarios_prod.itinerarios.id_operador1 = itinerarios_prod.operadores.id
-LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada
+LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
   AND buquesinvoice.facturas.estado = 'Pendiente'
+LEFT JOIN buquesinvoice.escalasurgentes ON itinerarios_prod.itinerarios.id = buquesinvoice.escalasurgentes.idescala
 WHERE itinerarios_prod.itinerarios.id_operador1 = ?
   AND itinerarios_prod.itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
 GROUP BY itinerarios_prod.itinerarios.id
@@ -1360,17 +1455,18 @@ ORDER BY itinerarios_prod.itinerarios.eta DESC
 // Endpoint para obtener facturas con estado "Requiere Nc"
 app.get('/api/facturas/requierenc', (req, res) => {
   const query = `
-    SELECT
-    idfacturas,
-    numero,
-    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha,
-    moneda,
-    monto,
-    proveedor,
+    SELECT 
+    idfacturas, 
+    numero, 
+    DATE_FORMAT(fecha, '%d-%m-%Y') AS fecha, 
+    moneda, 
+    monto, 
+    proveedor, 
     reclamadonc,
-    comentarios
-    FROM facturas
-    WHERE estado = 'Requiere Nc'
+    comentarios,
+    url_factura
+    FROM facturas 
+    WHERE estado = 'Requiere Nc' 
     AND DATEDIFF(CURDATE(), fecha) <= 15
   `;
 
@@ -1397,8 +1493,8 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
 
   const query = `
     UPDATE facturas
-    SET reclamadonc = ?,
-        ultimoreclamadoncuser = ?,
+    SET reclamadonc = ?, 
+        ultimoreclamadoncuser = ?, 
         fechareclamadonc = ?
     WHERE idfacturas = ?
   `;
@@ -1421,73 +1517,86 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
   );
 });
 
+app.get('/api/obtenerprogresoescalas', (req, res) => {
+  // Query para obtener las escalas con los servicios asociados
+  const query = `
+   SELECT 
+  se.idescala AS escala_id, 
+  b.nombre AS barco, 
+  DATE_FORMAT(i.eta, '%d/%m/%Y') AS eta, 
+  COUNT(DISTINCT se.idservicio) AS total_servicios,  -- Contar servicios únicos para evitar duplicados
+  COUNT(DISTINCT sf.idserviciosfacturas) AS total_servicios_facturados,  -- Contar facturas únicas asociadas
+  COALESCE(SUM(es.esurgente), 0) AS total_urgente -- Sumar el valor de esurgente, usar 0 si no hay coincidencias
+FROM 
+  buquesinvoice.serviciosescalas se
+JOIN itinerarios_prod.itinerarios i ON i.id = se.idescala  -- Relación entre serviciosescalas e itinerarios
+JOIN itinerarios_prod.buques b ON b.id = i.id_buque  -- Relación entre itinerarios y buques
+LEFT JOIN buquesinvoice.serviciosfacturas sf ON sf.idfactura IN (
+  SELECT idfacturas 
+  FROM buquesinvoice.facturas f 
+  WHERE f.estado = 'Aprobado' AND f.escala_asociada = se.idescala
+)
+LEFT JOIN buquesinvoice.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
+WHERE i.eta >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)  -- Filtro para escalas con eta máximo un año de antigüedad
+GROUP BY se.idescala, b.nombre, i.eta;
+  `;
+
+  connectionitinerarios.query(query, (err, results) => {
+    if (err) {
+      console.error('Error ejecutando la consulta:', err);
+      return res.status(500).json({ message: 'Error al obtener los datos de escalas' });
+    }
+
+    // Enviar los resultados de la consulta
+    res.json(results);
+  });
+});
+
+// Endpoint para actualizar o insertar escalas urgentes
+app.post('/api/actualizarurgencia', (req, res) => {
+  const { idescala, esurgente } = req.body;
+
+  if (!idescala) {
+    return res.status(400).json({ error: 'El campo idescala es obligatorio' });
+  }
+
+  // Verificar si ya existe un registro para esa escala
+  const querySelect = 'SELECT * FROM escalasurgentes WHERE idescala = ?';
+
+  connectionbuquesinvoice.query(querySelect, [idescala], (err, results) => {
+    if (err) {
+      console.error('Error al consultar la tabla escalasurgentes:', err);
+      return res.status(500).json({ error: 'Error en el servidor al consultar escalas urgentes' });
+    }
+
+    if (results.length > 0) {
+      // Si ya existe, actualizar el registro
+      const queryUpdate = 'UPDATE escalasurgentes SET esurgente = ? WHERE idescala = ?';
+
+      connectionbuquesinvoice.query(queryUpdate, [esurgente, idescala], (err) => {
+        if (err) {
+          console.error('Error al actualizar la tabla escalasurgentes:', err);
+          return res.status(500).json({ error: 'Error en el servidor al actualizar escalas urgentes' });
+        }
+
+        return res.status(200).json({ message: 'Escala actualizada correctamente como urgente' });
+      });
+    } else {
+      // Si no existe, insertar un nuevo registro
+      const queryInsert = 'INSERT INTO escalasurgentes (idescala, esurgente) VALUES (?, ?)';
+
+      connectionbuquesinvoice.query(queryInsert, [idescala, esurgente], (err) => {
+        if (err) {
+          console.error('Error al insertar en la tabla escalasurgentes:', err);
+          return res.status(500).json({ error: 'Error en el servidor al insertar escalas urgentes' });
+        }
+
+        return res.status(201).json({ message: 'Escala insertada correctamente como urgente' });
+      });
+    }
+  });
+});
+
 app.get('/', (req, res) => {
   res.send('Servidor funcionando');
-});
-
-app.post('/api/anularfactura', async (req, res) => {
-  const { idfacturas } = req.body; // Obtener el ID de la factura desde el cuerpo de la solicitud
-
-  if (!idfacturas) {
-    return res.status(400).json({ error: 'El idFactura es requerido' });
-  }
-
-  try {
-    // Consulta para actualizar el estado de la factura
-    const updateFacturaQuery = `
-      UPDATE facturas
-      SET estado = 'Anulado'
-      WHERE idfacturas = ?;
-    `;
-
-    // Ejecutar el query de actualización de la factura
-    await queryPromise(updateFacturaQuery, [idfacturas], connectionbuquesinvoice);
-
-    res.status(200).json({ message: 'Factura anulada exitosamente' });
-  } catch (error) {
-    console.error('Error al anular la factura:', error);
-    res.status(500).json({ error: 'Error al anular la factura' });
-  }
-});
-
-app.post('/api/eliminarserviciosfactura2', async (req, res) => {
-  const { idfactura } = req.body; // Obtener el ID de la factura desde el cuerpo de la solicitud
-  try {
-    // Consulta para eliminar servicios relacionados con la factura
-    const deleteServiciosQuery = `
-      DELETE FROM serviciosfacturas
-      WHERE idfactura = ?;
-    `;
-
-    // Ejecutar el query de eliminación de servicios
-    await queryPromise(deleteServiciosQuery, [idfactura], connectionbuquesinvoice);
-
-    res.status(200).json({ message: 'Servicios relacionados con la factura eliminados exitosamente' });
-  } catch (error) {
-    console.error('Error al eliminar los servicios:', error);
-    res.status(500).json({ error: 'Error al eliminar los servicios' });
-  }
-});
-
-// Endpoint para eliminar una factura
-app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
-  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
-
-  // Consulta SQL para eliminar la factura de la base de datos
-  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
-
-  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
-    if (err) {
-      console.error('Error al eliminar la factura svicios:', err);
-      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
-    }
-
-    if (results.affectedRows === 0) {
-      // Si no se eliminó ninguna fila, significa que no se encontró la factura
-      return res.status(404).json({ error: 'Factura servicis no encontrada' });
-    }
-
-    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
-    res.json({ message: 'Factura eliminada con éxito' });
-  });
 });

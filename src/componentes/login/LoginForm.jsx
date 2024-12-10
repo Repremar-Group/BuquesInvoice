@@ -21,8 +21,9 @@ const LoginForm = ({ onLoginSuccess }) => {
         { usuario: "idossantos", contraseña: "id0sant0s1372", idoperador: 66 },
         { usuario: "dremigio", contraseña: "dr3mig1o1372", rol:'contable'},
         { usuario: "pporra", contraseña: "paola", rol:'contable' },
-        { usuario: "jchaud", contraseña: "jc4ud1372", rol:'contable' },
-        { usuario: "sdacosta", contraseña: "sd4cost41372", rol:'contable' }
+        { usuario: "jchaud", contraseña: "jeanette", rol:'liquidacion' },
+        { usuario: "sdacosta", contraseña: "sd4cost41372", rol:'contable' },
+        { usuario: "mjvega", contraseña: "mjv3g41372", rol:'liquidacion' }
     ];
     // Manejar el evento de submit
     const handleSubmit = (e) => {
@@ -37,12 +38,12 @@ const LoginForm = ({ onLoginSuccess }) => {
             // Solo almacenar idOperador si existe en el objeto del usuario
             if (usuarioEncontrado.idoperador) {
                 localStorage.setItem('idOperador', usuarioEncontrado.idoperador);
-                localStorage.setItem('usuario', usuarioEncontrado.usuario);
-            }if (usuarioEncontrado.rol) {
-                localStorage.setItem('rol', usuarioEncontrado.rol);
-                localStorage.setItem('usuario', usuarioEncontrado.usuario);
             }
-
+            if (usuarioEncontrado.rol) {
+                localStorage.setItem('rol', usuarioEncontrado.rol);
+            }
+            // Almacenar el usuario en todos los casos
+            localStorage.setItem('usuario', usuarioEncontrado.usuario)
             onLoginSuccess();
             navigate('/home');
         } else {

@@ -4,6 +4,7 @@ import './Facturas.css'
 import axios from 'axios';
 import ModalBusquedaEscalaAsociada from '../modales/ModalBusquedaEscalaAsociada';
 import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
+import { environment } from '../../environment';
 
 const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
     const navigate = useNavigate();
@@ -30,7 +31,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
     const fetchServicios = async () => {
         try {
             console.log(escalasociadaid);
-            const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalasociadaid}`);
+            const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
             console.log(response.data);
             if (response.data.length === 0) {
                 console.log("La lista de servicios está vacía.");
@@ -65,7 +66,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
         if (e.key === 'Enter' && searchTermProveedor.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/obtenerproveedor?search=${searchTermProveedor}`);
+                const response = await axios.get(`${environment.API_URL}obtenerproveedor?search=${searchTermProveedor}`);
                 setFilteredProveedores(response.data);
                 setIsModalOpenProveedor(true); // Abre el modal con los resultados
             } catch (error) {
@@ -101,7 +102,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
         if (e.key === 'Enter' && searchTermEscalaAsociada.trim()) {
             e.preventDefault();
             try {
-                const response = await axios.get(`http://localhost:5000/api/buscarescalaasociada`, {
+                const response = await axios.get(`${environment.API_URL}buscarescalaasociada`, {
                     params: { searchTermEscalaAsociada },
                 });
                 setFilteredEscalas(response.data);
@@ -134,7 +135,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
             const fetchServiciosPuerto = async () => {
                 try {
                     console.log('Segundo log', escala.id_puerto); // Verificar el puerto
-                    const response = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${escala.id_puerto}`);
+                    const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${escala.id_puerto}`);
 
                     // Transformar el listado para solo tener 'nombre' y 'idescala'
                     const serviciosTransformados = response.data.map(servicio => ({
@@ -146,7 +147,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
 
                     console.log('Datos enviados al servidor:', serviciosTransformados);
                     // Cambiar el formato enviado al servidor
-                    const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+                    const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
                         servicios: serviciosTransformados
                     })
 
@@ -243,7 +244,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
             formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
             formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
 
-            const fileResponse = await axios.post('http://localhost:5000/api/Agregarfactura', formData, {
+            const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -289,7 +290,7 @@ const IngresarFacturasMultipleEscala = ({ isLoggedIn }) => {
                 facturaData.pre_aprobado = 0;
             };
             console.log(facturaData);
-            const facturaResponse = await axios.post('http://localhost:5000/api/insertardatosfactura', facturaData, {
+            const facturaResponse = await axios.post(`${environment.API_URL}insertardatosfactura`, facturaData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },

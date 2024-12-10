@@ -5,6 +5,7 @@ import './previewfacturas.css';
 import { Link } from "react-router-dom";
 import ModificarFactura from './ModificarFactura';
 import { toast, ToastContainer } from 'react-toastify';
+import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
 
 const PreviewEscalas = () => {
@@ -28,7 +29,7 @@ const PreviewEscalas = () => {
   // Función para obtener las facturas
   const fetchFacturas = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/previewfacturas');
+      const response = await axios.get(`${environment.API_URL}previewfacturas`);
       console.log(response.data);
       setFacturas(response.data);
     } catch (err) {
@@ -48,50 +49,66 @@ const PreviewEscalas = () => {
   const handleDownloadPDF = async () => {
     setLoading(true);
     setErrorpdf(null);
-
+ 
     try {
+      let primeraConsultaExitosa = false;
+ 
       // Realizar la primera solicitud (facturas con notas de crédito)
-      const responseWithNC = await axios.get('http://localhost:5000/api/exportarpdf', {
-        responseType: 'blob',
-      });
-
-      // Descargar el primer archivo
-      const urlWithNC = window.URL.createObjectURL(responseWithNC.data);
-      const linkWithNC = document.createElement('a');
-      linkWithNC.href = urlWithNC;
-      linkWithNC.setAttribute('download', 'facturas_con_nc.pdf');
-      document.body.appendChild(linkWithNC);
-      linkWithNC.click();
-      linkWithNC.parentNode.removeChild(linkWithNC);
-      window.URL.revokeObjectURL(urlWithNC);
-
+      try {
+        const responseWithNC = await axios.get(`${environment.API_URL}exportarpdfsinnotas`, {
+          responseType: 'blob',
+        });
+ 
+        // Descargar el primer archivo
+        const urlWithNC = window.URL.createObjectURL(responseWithNC.data);
+        const linkWithNC = document.createElement('a');
+        linkWithNC.href = urlWithNC;
+        linkWithNC.setAttribute('download', 'facturas_sin_nc.pdf');
+        document.body.appendChild(linkWithNC);
+        linkWithNC.click();
+        linkWithNC.parentNode.removeChild(linkWithNC);
+        window.URL.revokeObjectURL(urlWithNC);
+ 
+        primeraConsultaExitosa = true; // Marcar como exitosa
+      } catch (err) {
+        console.warn('La primera solicitud falló:', err);
+      }
+ 
       // Realizar la segunda solicitud (facturas sin notas de crédito)
-      const usuario = localStorage.getItem('usuario');
-      const responseWithoutNC = await axios.get('http://localhost:5000/api/exportarpdfsinnotas', {
-        params: { usuario }, // Pasar el usuario como parámetro
-        responseType: 'blob',
-      });
-
-      // Descargar el segundo archivo
-      const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
-      const linkWithoutNC = document.createElement('a');
-      linkWithoutNC.href = urlWithoutNC;
-      linkWithoutNC.setAttribute('download', 'facturas_sin_nc.pdf');
-      document.body.appendChild(linkWithoutNC);
-      linkWithoutNC.click();
-      linkWithoutNC.parentNode.removeChild(linkWithoutNC);
-      window.URL.revokeObjectURL(urlWithoutNC);
-
-      //Actualizo la lista de facturas
-      fetchFacturas();
-
+      try {
+        const responseWithoutNC = await axios.get(`${environment.API_URL}exportarpdfconnotas`, {
+          responseType: 'blob',
+        });
+ 
+        // Descargar el segundo archivo 1
+        const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
+        const linkWithoutNC = document.createElement('a');
+        linkWithoutNC.href = urlWithoutNC;
+        linkWithoutNC.setAttribute('download', 'facturas_con_nc.pdf');
+        document.body.appendChild(linkWithoutNC);
+        linkWithoutNC.click();
+        linkWithoutNC.parentNode.removeChild(linkWithoutNC);
+        window.URL.revokeObjectURL(urlWithoutNC);
+ 
+        primeraConsultaExitosa = true; // Considerar la operación general exitosa
+      } catch (err) {
+        console.warn('La segunda solicitud falló:', err);
+      }
+ 
+      if (!primeraConsultaExitosa) {
+        // Si ambas consultas fallaron
+        setErrorpdf('No existen facturas para imprimir o no se pudo generar el reporte.');
+      } else {
+        // Actualizar la lista de facturas si alguna consulta tuvo éxito
+        fetchFacturas();
+      }
     } catch (err) {
-      console.error('Error al descargar los archivos:', err);
-      setErrorpdf('No existen facturas para imprimir o no se pudo generar el reporte.');
+      console.error('Error inesperado:', err);
     } finally {
       setLoading(false); // Terminar el proceso de carga
     }
   };
+
   useEffect(() => {
     if (errorpdf) {
       toast.error('No existen facturas para imprimir o no se pudo generar el reporte.');
@@ -135,7 +152,7 @@ const PreviewEscalas = () => {
 
   const confirmEliminar = async () => {
     try {
-      await axios.delete(`http://localhost:5000/api/eliminarfactura/${idaeliminar}`);
+      await axios.delete(`${environment.API_URL}eliminarfactura/${idaeliminar}`);
       fetchFacturas();
       closeModalEliminar;  // Cerrar el modal después de eliminar
     } catch (err) {

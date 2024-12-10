@@ -4,6 +4,8 @@ import './viewescala.css';
 import { Link } from "react-router-dom";
 import axios from 'axios';
 import './previewescalas.css';
+import { environment } from '../../environment';
+
 
 // Componente para mostrar detalles generales de la escala
 const Facturas =({ facturas, searchTerm, handleSearch }) => {
@@ -165,7 +167,7 @@ const ViewEscala = () => {
     // Obtener los detalles de la escala
     const fetchEscala = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/viewescala/${id}`);
+        const response = await axios.get(`${environment.API_URL}viewescala/${id}`);
         setEscala(response.data);
       } catch (err) {
         console.error('Error al obtener la escala:', err);
@@ -176,7 +178,7 @@ const ViewEscala = () => {
 
     const fetchFacturas = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/viewescalafacturas/${id}`);
+        const response = await axios.get(`${environment.API_URL}viewescalafacturas/${id}`);
         setFacturas(response.data);
         console.log(response.data);
       } catch (err) {
@@ -190,7 +192,7 @@ const ViewEscala = () => {
     const fetchServiciosYFacturas = async () => {
       const idStr = String(id); // Convierte a string si es necesario
       try {
-        const response = await axios.get(`http://localhost:5000/api/viewescalaservicios/${idStr}`);
+        const response = await axios.get(`${environment.API_URL}viewescalaservicios/${idStr}`);
         console.log('Respuesta del servidor:', response.data);
         setServicios(response.data.servicios); // Actualizar el estado con los servicios obtenidos
       } catch (err) {

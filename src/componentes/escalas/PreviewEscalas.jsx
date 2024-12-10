@@ -3,6 +3,7 @@ import './previewescalas.css'; // Importa el archivo CSS
 import { Link } from "react-router-dom";
 import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
 import EscalaListaServicios from './EscalaListaServicios';
+import { environment } from '../../environment';
 
 const PreviewEscalas = ({ isLoggedIn }) => {
   // Estado para el modal
@@ -31,7 +32,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
     const fetchEscalas = async () => {
       try {
         setLoading(true); // Activar indicador de carga
-        const response = await axios.get('http://localhost:5000/api/previewescalas');
+        const response = await axios.get(`${environment.API_URL}previewescalas`);
         setEscalas(response.data); // Guardar los datos en el estado
         console.log(response.data);
       } catch (err) {
@@ -56,7 +57,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
     const fetchServicios = async () => {
       try {
         console.log(escalaId);
-        const response = await axios.get(`http://localhost:5000/api/obtenerserviciosescala?escalaId=${escalaId}`);
+        const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalaId}`);
         console.log('resultado obtener servicios de la escala', response.data);
         setServicios(response.data);
 
@@ -64,7 +65,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
           console.log("La variable 'servicios' está vacía.");
           try {
             console.log('Segundo log', idPuerto);
-            const response1 = await axios.get(`http://localhost:5000/api/obtenerserviciospuertos/${idPuerto}`);
+            const response1 = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${idPuerto}`);
 
             let serviciosTransformados = response1.data.map(servicio => ({
               nombre: servicio.nombre,
@@ -72,7 +73,7 @@ const PreviewEscalas = ({ isLoggedIn }) => {
             }));
             console.log('Datos enviados al servidor:', serviciosTransformados);
 
-            const response2 = await axios.post('http://localhost:5000/api/insertserviciospuertos', {
+            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
               servicios: serviciosTransformados
             });
             setServicios([]);

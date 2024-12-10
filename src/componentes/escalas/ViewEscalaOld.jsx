@@ -4,6 +4,7 @@ import './viewescala.css';
 import { Link } from "react-router-dom";
 import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
 import './previewescalas.css';
+import { environment } from '../../environment';
  
  
 // Componente para mostrar detalles generales de la escala
@@ -87,7 +88,7 @@ const ViewEscala = () => {
   useEffect(() => {
     const fetchEscala = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/viewescala/${id}`);
+        const response = await axios.get(`${environment.API_URL}viewescala/${id}`);
         setEscala(response.data);
       } catch (err) {
         console.error('Error al obtener la escala:', err);
@@ -97,7 +98,7 @@ const ViewEscala = () => {
  
     const fetchFacturas = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/viewescalafacturas/${id}`);
+        const response = await axios.get(`${environment.API_URL}viewescalafacturas/${id}`);
         setFacturas(response.data);
       } catch (err) {
         console.error('Error al obtener las facturas:', err);
