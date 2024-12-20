@@ -332,7 +332,6 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       setFecha('');
       setMoneda('');
       setMonto('');
-      setSearchTermEscalaAsociada('');
       setSearchTermProveedor('');
       setServicios([]);
       setSelectedFileFactura(null);

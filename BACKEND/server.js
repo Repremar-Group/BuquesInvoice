@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const path = require('path');
@@ -10,7 +12,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 
 //Constantes para manejar las caratulas con pdflib
-const { PDFDocument, rgb } = require('pdf-lib');
+const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fs = require('fs');
 
 const app = express();
@@ -25,7 +27,7 @@ const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
   user: 'itinerariosdba', // El usuario que creaste para la base de datos
   password: '!Masterkey_22', // La contraseña del usuario
-  database: 'buquesinvoice', // El nombre de la base de datos
+  database: `buquesinvoicedev`, // El nombre de la base de datos
   port: 3306, // Puerto predeterminado de MySQL
   connectTimeout: 60000,
 });
@@ -35,8 +37,47 @@ connectionbuquesinvoice.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL Buques');
 });
+
+// Función para comprobar la conexión antes de realizar la consulta
+function checkConnectionAndQuery(query, callback) {
+  console.log(connectionbuquesinvoice.state);
+  if (connectionbuquesinvoice.state === 'disconnected') {
+    console.log('Conexión perdida, reconectando...');
+    connectionbuquesinvoice.connect((err) => {
+      if (err) {
+        console.error('Error reconectando a la base de datos:', err.stack);
+        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
+      } else {
+        console.log('Reconexión exitosa');
+        connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta una vez reconectado
+      }
+    });
+  } else {
+    connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta si ya está conectada
+  }
+}
+
+// Función para comprobar la conexión antes de realizar la consulta
+function checkConnectionAndQueryItinerarios(query, callback) {
+  console.log(connectionitinerarios.state);
+  if (connectionitinerarios.state === 'disconnected') {
+    console.log('Conexión perdida, reconectando...');
+    connectionitinerarios.connect((err) => {
+      if (err) {
+        console.error('Error reconectando a la base de datos:', err.stack);
+        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
+      } else {
+        console.log('Reconexión exitosa');
+        connectionitinerarios.query(query, callback); // Ejecuta la consulta una vez reconectado
+      }
+    });
+  } else {
+    connectionitinerarios.query(query, callback); // Ejecuta la consulta si ya está conectada
+  }
+}
+
 
 // Configura la conexión a tu servidor MySQL flexible de Azure
 const connectionitinerarios = mysql.createConnection({
@@ -53,7 +94,7 @@ connectionitinerarios.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL Itinerarios');
 });
 const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
 /*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
@@ -189,7 +230,7 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
 app.get('/api/obtenerproveedor', (req, res) => {
   const search = req.query.search;
   const query = 'SELECT * FROM proveedores WHERE nombre LIKE ?';
-  connectionbuquesinvoice.query(query, [`%${search}%`], (err, results) => {
+  checkConnectionAndQuery(query, [`%${search}%`], (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Error en la consulta' });
     }
@@ -220,7 +261,7 @@ app.get('/api/previewfacturas', (req, res) => {
   console.log('Recibiendo solicitud para obtener facturas...');
 
   // Ejecutar la consulta
-  connectionbuquesinvoice.query(query, (err, results) => {
+  checkConnectionAndQuery(query, (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de las facturas:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de las facturas' });
@@ -230,6 +271,25 @@ app.get('/api/previewfacturas', (req, res) => {
     res.json(results);
   });
 });
+
+app.get('/api/obtenerserviciosfacturas', (req, res) => {
+  const query = `
+  SELECT 
+    idserviciosfacturas, 
+    nombre, 
+    estado, 
+    idfactura
+  FROM serviciosfacturas
+  `;
+  connectionbuquesinvoice.query(query, (err, results) => {
+    if (err) {
+      console.error('Error al consultar los datos:', err);
+      return res.status(500).json({ error: 'Error al consultar los datos' });
+    }
+    res.json(results);
+  });
+});
+
 //---------------------------------------------------------------------------------------------------------------------------------
 //Consumo de la bd itinerarios:
 
@@ -263,7 +323,7 @@ ORDER BY itinerarios.eta DESC;
   const searchTermWithWildcards = `%${searchTerm}%`;
 
   // Ejecutar la consulta con el término de búsqueda como parámetro
-  connectionitinerarios.query(query, [searchTermWithWildcards], (err, results) => {
+  checkConnectionAndQuery(query, [searchTermWithWildcards], (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de los itinerarios:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
@@ -298,8 +358,9 @@ app.get('/api/previewescalas', (req, res) => {
       ORDER BY itinerarios.eta DESC
     `;
   console.log('Recibiendo solicitud para obtener itinerarios...');
-  // Ejecutar la consulta
-  connectionitinerarios.query(query, (err, results) => {
+
+   // Llamar a la función que maneja la conexión y la consulta
+   checkConnectionAndQueryItinerarios(query, (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de los itinerarios:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
@@ -479,7 +540,7 @@ app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
 
   try {
     const query = 'UPDATE facturas SET comentarios = ? WHERE idfacturas = ?';
-    await connectionbuquesinvoice.query(query, [comentario, idfactura]);
+    await checkConnectionAndQuery(query, [comentario, idfactura]);
     res.status(200).json({ message: 'Comentario guardado correctamente.' });
   } catch (error) {
     console.error('Error al guardar el comentario:', error);
@@ -1155,13 +1216,38 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
       const facturasProcesadas = [];
       // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
+      // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura con watermark)
       for (const factura of facturas) {
         if (factura.url_factura) {
           const blobName = factura.url_factura.split('/').pop();
           const facturaPdfBytes = await downloadBlobToBuffer(blobName);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
 
-          // Copiar todas las páginas de la factura al documento principal
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocSinNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const facturaPages = facturaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of facturaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
+          // Copiar las páginas modificadas con el watermark al documento principal
           const facturaPdfPages = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           facturaPdfPages.forEach(page => pdfDocSinNC.addPage(page));
 
@@ -1307,23 +1393,71 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           const blobName = factura.url_factura.split('/').pop();
           const facturaPdfBytes = await downloadBlobToBuffer(blobName, containerNamefacturas);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          
-          // Copiar todas las páginas del documento de factura
+
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const facturaPages = facturaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of facturaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
+          // Copiar las páginas modificadas con el watermark al documento principal
           const facturaPdfPages = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           facturaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
-      
+
         if (factura.url_notacredito) {
           const containerNamenotas = "notascredito";
           const blobName = factura.url_notacredito.split('/').pop();
           const notaPdfBytes = await downloadBlobToBuffer(blobName, containerNamenotas);
           const notaPdfDoc = await PDFDocument.load(notaPdfBytes);
-          
+
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const notaPages = notaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of notaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
           // Copiar todas las páginas del documento de nota de crédito
           const notaPdfPages = await pdfDocConNC.copyPages(notaPdfDoc, notaPdfDoc.getPageIndices());
           notaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
-      
+
         // Guardar el ID de la factura para actualizar después
         facturasProcesadas.push(factura.idfacturas);
       }
@@ -1438,7 +1572,7 @@ HAVING facturasPendientes > 0
 ORDER BY itinerarios_prod.itinerarios.eta DESC
   `;
 
-  connectionbuquesinvoice.query(query, [idOperador], (err, results) => {
+  checkConnectionAndQuery(query, [idOperador], (err, results) => {
     if (err) {
       console.error('Error al consultar itinerarios:', err);
       return res.status(500).json({ error: 'Error al obtener los itinerarios' });
@@ -1470,7 +1604,7 @@ app.get('/api/facturas/requierenc', (req, res) => {
     AND DATEDIFF(CURDATE(), fecha) <= 15
   `;
 
-  connectionbuquesinvoice.query(query, (err, results) => {
+  checkConnectionAndQuery(query, (err, results) => {
     if (err) {
       console.error('Error al consultar facturas:', err);
       return res.status(500).json({ error: 'Error al obtener las facturas' });
