@@ -230,7 +230,7 @@ app.get('/api/obtenerserviciosescala', (req, res) => {
 app.get('/api/obtenerproveedor', (req, res) => {
   const search = req.query.search;
   const query = 'SELECT * FROM proveedores WHERE nombre LIKE ?';
-  checkConnectionAndQuery(query, [`%${search}%`], (err, results) => {
+  connectionbuquesinvoice.query(query, [`%${search}%`], (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Error en la consulta' });
     }
