@@ -323,7 +323,7 @@ ORDER BY itinerarios.eta DESC;
   const searchTermWithWildcards = `%${searchTerm}%`;
 
   // Ejecutar la consulta con el término de búsqueda como parámetro
-  checkConnectionAndQueryItinerarios(query, [searchTermWithWildcards], (err, results) => {
+  connectionitinerarios.query(query, [searchTermWithWildcards], (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de los itinerarios:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
