@@ -27,7 +27,7 @@ const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
   user: 'itinerariosdba', // El usuario que creaste para la base de datos
   password: '!Masterkey_22', // La contraseña del usuario
-  database: `buquesinvoicedev`, // El nombre de la base de datos
+  database: `buquesinvoice`, // El nombre de la base de datos
   port: 3306, // Puerto predeterminado de MySQL
   connectTimeout: 60000,
 });
