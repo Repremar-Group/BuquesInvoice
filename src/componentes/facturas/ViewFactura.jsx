@@ -77,6 +77,15 @@ const General = ({ factura, escala }) => {
             readOnly
           />
         </div>
+        <div>
+          <label htmlFor="montoFactura">Monto :</label>
+          <input
+            type="text"
+            id="montoFactura"
+            value={factura ? factura.monto + ' ' +factura.moneda: ''}
+            readOnly
+          />
+        </div>
         <button className='btn-nc' onClick={() => handleVerNC()} disabled={!factura?.url_notacredito} >Ver NC</button>
       </div>
 

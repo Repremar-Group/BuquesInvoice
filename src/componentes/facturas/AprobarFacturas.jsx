@@ -480,6 +480,15 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           />
         </div>
         <div>
+          <label htmlFor="montoFactura">Monto:</label>
+          <input
+            type="text"
+            id="montoFactura"
+            value={facturaActual ? facturaActual.monto + ' ' + facturaActual.moneda: ''}
+            readOnly
+          />
+        </div>
+        <div>
           <label htmlFor="fechaFactura">Contador:</label>
           <input
             type="text"

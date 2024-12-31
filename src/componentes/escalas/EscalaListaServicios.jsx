@@ -7,64 +7,80 @@ import { environment } from '../../environment';
 const EscalaListaServicios = ({ id, closeModal }) => {
 
   const [serviciomodal, setServicioModal] = useState('');
+  const [serviciosfacturas, setServiciosFacturas] = useState([]);
   const [nombre, setSNombre] = useState('');
   const [serviciosmodal, setServiciosModal] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
-
-  const itemsPerPage = 500;
+  const idEscala = id
+  const itemsPerPage = 2000;
 
   useEffect(() => {
-      fetchServiciosModal(id);
+    fetchServiciosModal();
   }, []);
 
   const fetchServiciosModal = async () => {
     try {
-      console.log(id);
-      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${id}`);
+      console.log(idEscala);
+      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${idEscala}`);
       console.log('log en modal', response.data);
       setServiciosModal(response.data);
-      console.log('serviciomodal', serviciosmodal);
+      const responsefacturas = await axios.get(`${environment.API_URL}viewescalafacturas/${idEscala}`);
+      const responseservicios = await axios.get(`${environment.API_URL}obtenerserviciosfacturas`);
+
+      // Crear un conjunto de IDs de facturas para comparación rápida
+      const facturasIds = new Set(responsefacturas.data.map(factura => Number(factura.idfacturas)));
+
+      // Filtrar los servicios cuyo idfactura esté en el conjunto de facturasIds
+      const filteredFacturas = responseservicios.data
+        .filter(servicio => facturasIds.has(Number(servicio.idfactura)))
+        .map(servicio => servicio.nombre);
+
+      // Actualizar el estado con los datos filtrados
+      setServiciosFacturas(filteredFacturas);
+      console.log('facturas con servicios:', filteredFacturas);
     } catch (error) {
       console.error('Error al obtener servicios:', error);
     }
   }
- 
+
 
   const handleAgregarServicio = async (e) => {
-      e.preventDefault();
-      try {
-        const idescala = id;
-        const nombre = serviciomodal;
-        await axios.post(`${environment.API_URL}escalas/agregarservicio`, { idescala, nombre });
-          setServicioModal('');
-      } catch (error) {
-          setError('Error al agregar el servicio');
-          console.error(error);
-      } finally {
-        fetchServiciosModal(idescala);
-        console.log('finally lpm que ande')
-      }
+    e.preventDefault();
+    const servicio = serviciomodal;
+    try {
+      const response = await axios.post(
+        `${environment.API_URL}escalas/agregarservicio`,
+        { idEscala, servicio }
+      );
+      console.log('Servicio agregado:', response.data); // Asegúrate de verificar la respuesta
+      setServicioModal('');
+      await fetchServiciosModal(); // Espera hasta que se obtengan los nuevos servicios
+    } catch (error) {
+      setError('Error al agregar el servicio');
+      console.error(error);
+    }
   };
-
   const handleEliminarServicio = async (idServicio) => {
     try {
-        const response = await axios.delete(`${environment.API_URL}escalas/eliminarservicio/${idServicio}`);
-        console.log(response.data);  // Verifica la respuesta del servidor
+      const response = await axios.delete(`${environment.API_URL}escalas/eliminarservicio/${idServicio}`);
+      console.log(response.data);  // Verifica la respuesta del servidor
+      fetchServiciosModal();
     } catch (error) {
-        console.error('Error al eliminar el servicio:', error);
-        setError('Error al eliminar el servicio');
+      console.error('Error al eliminar el servicio:', error);
+      setError('Error al eliminar el servicio');
     }
   };
 
-  const filteredData = serviciosmodal;
-
+  const filteredData = serviciosmodal.filter((row) =>
+    row.nombre.toLowerCase().includes(nombre.toLowerCase())
+  );
 
   const pageCount = Math.ceil(filteredData.length / itemsPerPage);
   const displayedItems = filteredData.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   const handlePageClick = (event) => {
-      setCurrentPage(event.selected);
+    setCurrentPage(event.selected);
   };
 
   return (
@@ -92,14 +108,20 @@ const EscalaListaServicios = ({ id, closeModal }) => {
             </tr>
           </thead>
           <tbody>
-            {displayedItems.map((row) => (
-              <tr key={row.idservicio}>
-                <td>{row.nombre}</td>
-                <td>
-                  <button className="action-button" onClick={() => handleEliminarServicio(row.idservicio)}>❌</button>
-                </td>
-              </tr>
-            ))}
+            {serviciosmodal.map((row) => {
+              const isFacturaServicio = serviciosfacturas.includes(row.nombre);
+
+              return (
+                <tr key={row.idservicio} className={isFacturaServicio ? 'disabled-row' : ''}>
+                  <td>{row.nombre}</td>
+                  <td>
+                    {!isFacturaServicio && (
+                      <button className="action-button" onClick={() => handleEliminarServicio(row.idservicio)}>❌</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 

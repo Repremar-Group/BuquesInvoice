@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const path = require('path');
@@ -10,7 +12,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 
 //Constantes para manejar las caratulas con pdflib
-const { PDFDocument, rgb } = require('pdf-lib');
+const { PDFDocument, rgb, degrees } = require('pdf-lib');
 const fs = require('fs');
 
 const app = express();
@@ -25,7 +27,7 @@ const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
   user: 'itinerariosdba', // El usuario que creaste para la base de datos
   password: '!Masterkey_22', // La contraseña del usuario
-  database: 'buquesinvoice', // El nombre de la base de datos
+  database: `buquesinvoice`, // El nombre de la base de datos
   port: 3306, // Puerto predeterminado de MySQL
   connectTimeout: 60000,
 });
@@ -35,8 +37,47 @@ connectionbuquesinvoice.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL Buques');
 });
+
+// Función para comprobar la conexión antes de realizar la consulta
+function checkConnectionAndQuery(query, callback) {
+  console.log(connectionbuquesinvoice.state);
+  if (connectionbuquesinvoice.state === 'disconnected') {
+    console.log('Conexión perdida, reconectando...');
+    connectionbuquesinvoice.connect((err) => {
+      if (err) {
+        console.error('Error reconectando a la base de datos:', err.stack);
+        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
+      } else {
+        console.log('Reconexión exitosa');
+        connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta una vez reconectado
+      }
+    });
+  } else {
+    connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta si ya está conectada
+  }
+}
+
+// Función para comprobar la conexión antes de realizar la consulta
+function checkConnectionAndQueryItinerarios(query, callback) {
+  console.log(connectionitinerarios.state);
+  if (connectionitinerarios.state === 'disconnected') {
+    console.log('Conexión perdida, reconectando...');
+    connectionitinerarios.connect((err) => {
+      if (err) {
+        console.error('Error reconectando a la base de datos:', err.stack);
+        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
+      } else {
+        console.log('Reconexión exitosa');
+        connectionitinerarios.query(query, callback); // Ejecuta la consulta una vez reconectado
+      }
+    });
+  } else {
+    connectionitinerarios.query(query, callback); // Ejecuta la consulta si ya está conectada
+  }
+}
+
 
 // Configura la conexión a tu servidor MySQL flexible de Azure
 const connectionitinerarios = mysql.createConnection({
@@ -53,9 +94,9 @@ connectionitinerarios.connect((err) => {
     console.error('Error conectando a la base de datos:', err.stack);
     return;
   }
-  console.log('Conexión exitosa a la base de datos MySQL');
+  console.log('Conexión exitosa a la base de datos MySQL Itinerarios');
 });
-const AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
+const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
 /*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
 const containerNCClient = blobServiceClient.getContainerClient('nc');*/
@@ -220,7 +261,7 @@ app.get('/api/previewfacturas', (req, res) => {
   console.log('Recibiendo solicitud para obtener facturas...');
 
   // Ejecutar la consulta
-  connectionbuquesinvoice.query(query, (err, results) => {
+  checkConnectionAndQuery(query, (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de las facturas:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de las facturas' });
@@ -230,6 +271,25 @@ app.get('/api/previewfacturas', (req, res) => {
     res.json(results);
   });
 });
+
+app.get('/api/obtenerserviciosfacturas', (req, res) => {
+  const query = `
+  SELECT 
+    idserviciosfacturas, 
+    nombre, 
+    estado, 
+    idfactura
+  FROM serviciosfacturas
+  `;
+  connectionbuquesinvoice.query(query, (err, results) => {
+    if (err) {
+      console.error('Error al consultar los datos:', err);
+      return res.status(500).json({ error: 'Error al consultar los datos' });
+    }
+    res.json(results);
+  });
+});
+
 //---------------------------------------------------------------------------------------------------------------------------------
 //Consumo de la bd itinerarios:
 
@@ -298,8 +358,9 @@ app.get('/api/previewescalas', (req, res) => {
       ORDER BY itinerarios.eta DESC
     `;
   console.log('Recibiendo solicitud para obtener itinerarios...');
-  // Ejecutar la consulta
-  connectionitinerarios.query(query, (err, results) => {
+
+   // Llamar a la función que maneja la conexión y la consulta
+   checkConnectionAndQueryItinerarios(query, (err, results) => {
     if (err) {
       console.error('Error al consultar los datos de los itinerarios:', err);
       return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
@@ -330,17 +391,19 @@ app.post('/api/Agregarfactura', async (req, res) => {
     const blobName = req.files.fileFactura.name; // Use original file name
     const containerClient = blobServiceClient.getContainerClient(containerName);
     const contentType = 'application/pdf'; // Get MIME type from the uploaded file
-    
+
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     console.log(req.files.fileFactura);
-   
+
 
     // Upload file to Azure Blob Storage
-    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {blobHTTPHeaders: {
-      blobContentType: contentType, // Set Content-Type explicitly
-    },});
+    await blockBlobClient.upload(req.files.fileFactura.data, req.files.fileFactura.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
+    });
     archivosSubidos.fileFacturaUrl = `https://buquesinvoicestorage.blob.core.windows.net/invoices/${archivoFactura.name}`; // Guardamos la ruta del archivo
-    
+
   }
 
   // Verificar si 'fileNC' existe y moverlo
@@ -353,15 +416,17 @@ app.post('/api/Agregarfactura', async (req, res) => {
     const contentType = 'application/pdf'; // Get MIME type from the uploaded file
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     console.log(req.files.fileNC.name);
-   
+
 
     // Upload file to Azure Blob Storage
-    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length,{blobHTTPHeaders: {
-      blobContentType: contentType, // Set Content-Type explicitly
-    },});
+    await blockBlobClient.upload(req.files.fileNC.data, req.files.fileNC.data.length, {
+      blobHTTPHeaders: {
+        blobContentType: contentType, // Set Content-Type explicitly
+      },
+    });
     archivosSubidos.fileNCUrl = `https://buquesinvoicestorage.blob.core.windows.net/notascredito/${archivoNC.name}`; // Guardamos la ruta del archivo
 
-    
+
   }
 
   // Esperar que se muevan los archivos y luego responder
@@ -475,7 +540,7 @@ app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
 
   try {
     const query = 'UPDATE facturas SET comentarios = ? WHERE idfacturas = ?';
-    await connectionbuquesinvoice.query(query, [comentario, idfactura]);
+    await checkConnectionAndQuery(query, [comentario, idfactura]);
     res.status(200).json({ message: 'Comentario guardado correctamente.' });
   } catch (error) {
     console.error('Error al guardar el comentario:', error);
@@ -796,6 +861,29 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
   });
 });
 
+// Endpoint para eliminar una factura
+app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+
+  // Consulta SQL para eliminar la factura de la base de datos
+  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+
+  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
+    if (err) {
+      console.error('Error al eliminar la factura svicios:', err);
+      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
+    }
+
+    if (results.affectedRows === 0) {
+      // Si no se eliminó ninguna fila, significa que no se encontró la factura
+      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+    }
+
+    // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
+    res.json({ message: 'Factura eliminada con éxito' });
+  });
+});
+
 // Endpoint para agregar un servicio a una escala
 app.post('/api/escalas/agregarservicio', (req, res) => {
   const { idescala, nombre } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
@@ -813,7 +901,11 @@ app.post('/api/escalas/agregarservicio', (req, res) => {
       console.error('Error al agregar el servicio a la escala:', err);
       return res.status(500).json({ error: 'Error al agregar el servicio' });
     }
-
+    // Respuesta indicando éxito en la adición del servicio
+    res.status(200).json({
+      message: 'Servicio agregado con éxito',
+      servicioId: results.insertId,
+    });
     // Respuesta indicando éxito en la adición del servicio
     console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
   });
@@ -1016,6 +1108,22 @@ const queryPromise = (query, connection) => {
 
 app.get('/api/exportarpdfsinnotas', async (req, res) => {
   try {
+    //Funcion para descargar pdfs desde azure
+    const downloadBlobToBuffer = async (blobName) => {
+      const containerName = 'invoices'; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
+
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+
+      return Buffer.concat(chunks);
+    };
+
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y tienen estado aprobado ----Cambie esto ayer
     const queryFacturas = `
       SELECT 
@@ -1108,13 +1216,40 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
       const facturasProcesadas = [];
       // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
+      // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura con watermark)
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocSinNC.addPage(facturaPdfPage);
+
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocSinNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const facturaPages = facturaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of facturaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
+          // Copiar las páginas modificadas con el watermark al documento principal
+          const facturaPdfPages = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocSinNC.addPage(page));
 
           // Guardar el ID de la factura para actualizar después
           facturasProcesadas.push(factura.idfacturas);
@@ -1144,6 +1279,20 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 //Endpoint que genera el con sin notas de credito
 app.get('/api/exportarpdfconnotas', async (req, res) => {
   try {
+    const downloadBlobToBuffer = async (blobName, containerNamerecibido) => {
+      const containerName = containerNamerecibido; // Replace with your container name
+      const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+      const downloadBlockBlobResponse = await blobClient.download();
+      const chunks = [];
+
+      for await (const chunk of downloadBlockBlobResponse.readableStreamBody) {
+        chunks.push(chunk);
+      }
+
+      return Buffer.concat(chunks);
+    };
     // Consulta SQL para obtener las facturas que no tienen `gia` marcado y estado aprobado
     const queryFacturas = `
       SELECT 
@@ -1240,20 +1389,75 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       // Agregar únicamente las facturas al PDF
       for (const factura of facturas) {
         if (factura.url_factura) {
-          const facturaPdfPath = path.join(__dirname, '..', 'public', factura.url_factura);
-          const facturaPdfBytes = fs.readFileSync(facturaPdfPath);
+          const containerNamefacturas = "invoices";
+          const blobName = factura.url_factura.split('/').pop();
+          const facturaPdfBytes = await downloadBlobToBuffer(blobName, containerNamefacturas);
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
-          const [facturaPdfPage] = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(facturaPdfPage);
+
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const facturaPages = facturaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of facturaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
+          // Copiar las páginas modificadas con el watermark al documento principal
+          const facturaPdfPages = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+          facturaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
 
         if (factura.url_notacredito) {
-          const notaCreditoPdfPath = path.join(__dirname, '..', 'public', factura.url_notacredito);
-          const notaCreditoPdfBytes = fs.readFileSync(notaCreditoPdfPath);
-          const notaCreditoPdfDoc = await PDFDocument.load(notaCreditoPdfBytes);
-          const [notaCreditoPdfPage] = await pdfDocConNC.copyPages(notaCreditoPdfDoc, notaCreditoPdfDoc.getPageIndices());
-          pdfDocConNC.addPage(notaCreditoPdfPage);
+          const containerNamenotas = "notascredito";
+          const blobName = factura.url_notacredito.split('/').pop();
+          const notaPdfBytes = await downloadBlobToBuffer(blobName, containerNamenotas);
+          const notaPdfDoc = await PDFDocument.load(notaPdfBytes);
+
+          // Crear una nueva fuente estándar para el watermark
+          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+
+          // Obtener las páginas del PDF de factura
+          const notaPages = notaPdfDoc.getPages();
+          const { buque, eta, puerto, operador } = escala; // Datos de la escala
+
+          // Agregar watermark en cada página del PDF de factura
+          for (const page of notaPages) {
+            const { width, height } = page.getSize();
+            page.drawText(
+              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              {
+                x: width / 100, // Posición del watermark (ajustable)
+                y: height / 600, // Centro de la página
+                size: 12, // Tamaño del texto
+                font: fontWatermark,
+                color: rgb(0, 0, 0), // Color gris
+                opacity: 0.5, // Transparencia
+                rotate: degrees(0) // Texto en diagonal
+              }
+            );
+          }
+
+          // Copiar todas las páginas del documento de nota de crédito
+          const notaPdfPages = await pdfDocConNC.copyPages(notaPdfDoc, notaPdfDoc.getPageIndices());
+          notaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
+
         // Guardar el ID de la factura para actualizar después
         facturasProcesadas.push(factura.idfacturas);
       }
@@ -1368,7 +1572,7 @@ HAVING facturasPendientes > 0
 ORDER BY itinerarios_prod.itinerarios.eta DESC
   `;
 
-  connectionbuquesinvoice.query(query, [idOperador], (err, results) => {
+  checkConnectionAndQuery(query, [idOperador], (err, results) => {
     if (err) {
       console.error('Error al consultar itinerarios:', err);
       return res.status(500).json({ error: 'Error al obtener los itinerarios' });
@@ -1400,7 +1604,7 @@ app.get('/api/facturas/requierenc', (req, res) => {
     AND DATEDIFF(CURDATE(), fecha) <= 15
   `;
 
-  connectionbuquesinvoice.query(query, (err, results) => {
+  checkConnectionAndQuery(query, (err, results) => {
     if (err) {
       console.error('Error al consultar facturas:', err);
       return res.status(500).json({ error: 'Error al obtener las facturas' });
