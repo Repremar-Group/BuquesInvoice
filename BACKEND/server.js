@@ -101,6 +101,29 @@ const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountN
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
 const containerNCClient = blobServiceClient.getContainerClient('nc');*/
 const upload = multer({ storage: multer.memoryStorage() });
+// Pool Itinerarios
+const poolItinerarios = mysql.createPool({
+  host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
+  user: 'itinerariosdba', // El usuario de la base de datos
+  password: '!Masterkey_22', // La contraseña del usuario
+  database: 'itinerarios_prod', // El nombre de la base de datos
+  port: 3306, // Puerto predeterminado de MySQL
+  connectionLimit: 10, // Número máximo de conexiones en el pool
+  connectTimeout: 120000, // 120 segundos para conectar
+  acquireTimeout: 120000, // 120 segundos para adquirir una conexión del pool
+  waitForConnections: true,
+  queueLimit: 0
+});
+
+// Probar la conexión
+poolItinerarios.getConnection((err, connection) => {
+  if (err) {
+    console.error('❌ Error al conectar al pool de la base de datos:', err.stack);
+    return;
+  }
+  console.log('✅ Conexión exitosa al pool de la base de datos MySQL Itinerarios');
+  connection.release(); // Liberar la conexión de prueba
+});
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
@@ -1650,7 +1673,7 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
     }
   );
 });
-
+/*
 app.get('/api/obtenerprogresoescalas', (req, res) => {
   // Query para obtener las escalas con los servicios asociados
   const query = `
@@ -1683,6 +1706,48 @@ GROUP BY se.idescala, b.nombre, i.eta;
 
     // Enviar los resultados de la consulta
     res.json(results);
+  });
+});*/
+//cambio a obtenerprogresoescalas pool
+app.get('/api/obtenerprogresoescalas', (req, res) => {
+  const query = `
+    SELECT 
+      se.idescala AS escala_id, 
+      b.nombre AS barco, 
+      DATE_FORMAT(i.eta, '%d/%m/%Y') AS eta, 
+      COUNT(DISTINCT se.idservicio) AS total_servicios,
+      COUNT(DISTINCT sf.idserviciosfacturas) AS total_servicios_facturados,
+      COALESCE(SUM(es.esurgente), 0) AS total_urgente
+    FROM 
+      buquesinvoice.serviciosescalas se
+    JOIN itinerarios_prod.itinerarios i ON i.id = se.idescala
+    JOIN itinerarios_prod.buques b ON b.id = i.id_buque
+    LEFT JOIN buquesinvoice.serviciosfacturas sf ON sf.idfactura IN (
+      SELECT idfacturas 
+      FROM buquesinvoice.facturas f 
+      WHERE f.estado = 'Aprobado' AND f.escala_asociada = se.idescala
+    )
+    LEFT JOIN buquesinvoice.escalasurgentes es ON es.idescala = se.idescala
+    WHERE i.eta >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+    GROUP BY se.idescala, b.nombre, i.eta;
+  `;
+
+  poolItinerarios.getConnection((err, connection) => {
+    if (err) {
+      console.error('❌ Error al obtener la conexión del pool:', err.stack);
+      return res.status(500).json({ message: 'Error al conectar a la base de datos' });
+    }
+
+    connection.query(query, (queryErr, results) => {
+      connection.release(); // Liberar conexión después de la consulta
+
+      if (queryErr) {
+        console.error('❌ Error ejecutando la consulta:', queryErr.stack);
+        return res.status(500).json({ message: 'Error al obtener los datos de escalas' });
+      }
+
+      res.json(results);
+    });
   });
 });
 
