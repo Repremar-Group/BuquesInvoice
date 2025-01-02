@@ -5,6 +5,7 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const cors = require('cors');
 const mysql = require('mysql');
+const mysql2 = require('mysql2/promise');
 const Busboy = require('busboy');
 
 const multer = require('multer'); // Middleware para manejar la carga de archivos
@@ -22,7 +23,71 @@ app.use((req, res, next) => {
   console.log(`Solicitud recibida: ${req.method} ${req.url}`);
   next();
 });
+// Crear un pool para la base de datos `buquesinvoice`
+const poolBuquesInvoice = mysql2.createPool({
+  host: 'itinerarios.mysql.database.azure.com',
+  user: 'itinerariosdba',
+  password: '!Masterkey_22',
+  database: 'buquesinvoice',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10, // Número máximo de conexiones en el pool
+  queueLimit: 0,       // Sin límite en la cola de espera
+  connectTimeout: 60000, // Tiempo máximo para conectar
+  idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
+});
 
+// Crear un pool para la base de datos `itinerarios_prod`
+const poolItinerarios = mysql2.createPool({
+  host: 'itinerarios.mysql.database.azure.com',
+  user: 'itinerariosdba',
+  password: '!Masterkey_22',
+  database: 'itinerarios_prod',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  connectTimeout: 60000, // Tiempo máximo para conectar
+  idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
+});
+
+// Función para verificar el estado de cada pool
+const monitorPool = (pool, name) => {
+  setInterval(async () => {
+    try {
+      // Realiza una consulta simple para mantener la conexión activa
+      const [rows] = await pool.query('SELECT 1');
+      console.log(`${name} Pool está activo:`, {
+        // Aquí podrías agregar detalles del estado según lo que quieras rastrear
+        // Ejemplo: cantidad de conexiones activas, si es necesario
+        message: 'Conexión activa.',
+      });
+    } catch (err) {
+      console.error(`${name} Pool error:`, err.message);
+    }
+  }, 900000); // Monitorear cada 10 segundos
+};
+
+// Monitorear ambos pools
+monitorPool(poolBuquesInvoice, 'BuquesInvoice');
+monitorPool(poolItinerarios, 'Itinerarios');
+// Monitorear conexiones activas y liberadas
+poolBuquesInvoice.on('acquire', (connection) => {
+  console.log('Conexión adquirida para BuquesInvoice:', connection.threadId);
+});
+
+poolBuquesInvoice.on('release', (connection) => {
+  console.log('Conexión liberada de BuquesInvoice:', connection.threadId);
+});
+
+poolItinerarios.on('acquire', (connection) => {
+  console.log('Conexión adquirida para Itinerarios:', connection.threadId);
+});
+
+poolItinerarios.on('release', (connection) => {
+  console.log('Conexión liberada de Itinerarios:', connection.threadId);
+});
+/*
 const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
   user: 'itinerariosdba', // El usuario que creaste para la base de datos
@@ -96,6 +161,7 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL Itinerarios');
 });
+*/
 const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
 /*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
@@ -105,7 +171,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
 // Endpoint para obtener los detalles de una factura
-app.get('/api/obtenerfactura/:id', (req, res) => {
+app.get('/api/obtenerfactura/:id', async (req, res) => {
   console.log('Solicitud recibida en el endpoint /api/obtenerfactura/:id');
   const { id } = req.params;
   console.log(`ID recibido en el endpoint: ${id}`);
@@ -116,22 +182,26 @@ app.get('/api/obtenerfactura/:id', (req, res) => {
     WHERE idfacturas = ?
   `;
 
-  connectionbuquesinvoice.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Error al obtener los detalles de la factura:', err);
-      return res.status(500).json({ error: 'Error al obtener los detalles de la factura' });
-    }
+
+  try {
+    // Realiza la consulta utilizando el pool
+    const [results] = await poolBuquesInvoice.query(query, [id]);
 
     if (results.length === 0) {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
 
     res.json({ factura: results[0] });
-  });
+  } catch (err) {
+    console.error('Error al obtener los detalles de la factura:', err);
+    return res.status(500).json({ error: 'Error al obtener los detalles de la factura' });
+  }
 });
 //Consumo de la bd de buquesinvoice
+
 // Endpoint para insertar datos de la factura
-app.post('/api/insertardatosfactura', (req, res) => {
+// Endpoint para insertar datos de la factura
+app.post('/api/insertardatosfactura', async (req, res) => {
   console.log("Datos recibidos:", req.body);  // Verificar los datos que llegan
 
   const { numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado, servicios } = req.body;
@@ -146,12 +216,12 @@ app.post('/api/insertardatosfactura', (req, res) => {
     return res.status(400).send("Error: Se debe proporcionar al menos una URL (factura o nota de crédito).");
   }
 
-  // Iniciar la transacción
-  connectionbuquesinvoice.beginTransaction((err) => {
-    if (err) {
-      console.error("Error al comenzar la transacción:", err);
-      return res.status(500).send("Error al comenzar la transacción");
-    }
+  // Obtener la conexión del pool de buquesinvoice
+  const connectionBuques = await poolBuquesInvoice.getConnection();
+
+  try {
+    // Iniciar la transacción
+    await connectionBuques.beginTransaction();
 
     // Insertar la factura
     const sqlFactura = `
@@ -161,86 +231,106 @@ app.post('/api/insertardatosfactura', (req, res) => {
     `;
     const valuesFactura = [numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado];
 
-    connectionbuquesinvoice.query(sqlFactura, valuesFactura, (err, result) => {
-      if (err) {
-        return connectionbuquesinvoice.rollback(() => {
-          console.error("Error al insertar la factura:", err);
-          return res.status(500).send("Error al insertar la factura");
-        });
-      }
+    const [resultFactura] = await connectionBuques.query(sqlFactura, valuesFactura);
+    const facturaId = resultFactura.insertId;  // Obtener el ID de la factura insertada
 
-      const facturaId = result.insertId;  // Obtener el ID de la factura insertada
+    // Insertar los servicios asociados
+    const sqlServicios = `
+      INSERT INTO serviciosfacturas (nombre, estado, idfactura) 
+      VALUES ?
+    `;
+    const serviciosValues = servicios.map(servicio => [
+      servicio.nombre,
+      servicio.estado,
+      facturaId  // Usamos el ID de la factura insertada
+    ]);
 
-      // Insertar los servicios asociados
-      const sqlServicios = `
-        INSERT INTO serviciosfacturas (nombre, estado, idfactura) 
-        VALUES ?
-      `;
-      const serviciosValues = servicios.map(servicio => [
-        servicio.nombre,
-        servicio.estado,
-        facturaId  // Usamos el ID de la factura insertada
-      ]);
+    await connectionBuques.query(sqlServicios, [serviciosValues]);
 
-      connectionbuquesinvoice.query(sqlServicios, [serviciosValues], (err, result) => {
-        if (err) {
-          return connectionbuquesinvoice.rollback(() => {
-            console.error("Error al insertar los servicios asociados:", err);
-            return res.status(500).send("Error al insertar los servicios asociados");
-          });
-        }
+    // Commit de la transacción si ambos inserts fueron exitosos
+    await connectionBuques.commit();
 
-        // Commit de la transacción si ambos inserts fueron exitosos
-        return connectionbuquesinvoice.commit((err) => {
-          if (err) {
-            return connectionbuquesinvoice.rollback(() => {
-              console.error("Error al hacer commit:", err);
-              return res.status(500).send("Error al hacer commit");
-            });
-          }
+    return res.json({ message: "Factura y servicios insertados exitosamente", id: facturaId });
 
-          return res.json({ message: "Factura y servicios insertados exitosamente", id: facturaId });
-        });
-      });
-    });
-  });
+  } catch (err) {
+    // Si hay algún error, hacer rollback de la transacción
+    console.error("Error al insertar los datos:", err);
+    await connectionBuques.rollback();
+    return res.status(500).send("Error al insertar los datos");
+  } finally {
+    // Liberar la conexión del pool
+    connectionBuques.release();
+  }
 });
-
 
 
 //Endpoint para buscar servicios asociados a una escala
-app.get('/api/obtenerserviciosescala', (req, res) => {
+app.get('/api/obtenerserviciosescala', async (req, res) => {
   const escalaId = req.query.escalaId; // Obtiene el id de la escala desde los parámetros de la query
-  console.log('Received request for /api/servicios-escala');
+  console.log('Received request for /api/obtenerserviciosescala');
   console.log('escalaId recibido:', escalaId); // Asegúrate de que el ID es correcto
 
-  // Realiza la consulta para obtener los servicios asociados a la escala
-  const query = 'SELECT * FROM serviciosescalas WHERE idescala = ?';
+  // Verificar si el escalaId es válido
+  if (!escalaId) {
+    return res.status(400).json({ error: 'El parámetro escalaId es obligatorio.' });
+  }
 
-  connectionbuquesinvoice.query(query, [escalaId], (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error en la consulta de servicios' });
+  try {
+    // Obtener la conexión del pool de buquesinvoice
+    const connectionBuques = await poolBuquesInvoice.getConnection();
+
+    // Realiza la consulta para obtener los servicios asociados a la escala
+    const query = 'SELECT * FROM serviciosescalas WHERE idescala = ?';
+    const [results] = await connectionBuques.query(query, [escalaId]);
+
+    // Si no se encuentran servicios asociados
+    if (results.length === 0) {
+      return res.json([]);
     }
-    res.json(results); // Devuelve los servicios encontrados
-  });
+
+    // Devuelve los servicios encontrados
+    res.json(results);
+    connectionBuques.release();
+  } catch (err) {
+    console.error('Error en la consulta de servicios:', err);
+    return res.status(500).json({ error: 'Error al obtener los servicios asociados a la escala.' });
+  }
 });
 
-
 // Endpoint para buscar proveedores
-app.get('/api/obtenerproveedor', (req, res) => {
+app.get('/api/obtenerproveedor', async (req, res) => {
   const search = req.query.search;
-  const query = 'SELECT * FROM proveedores WHERE nombre LIKE ?';
-  connectionbuquesinvoice.query(query, [`%${search}%`], (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: 'Error en la consulta' });
+
+  // Verificar si se ha proporcionado un término de búsqueda
+  if (!search) {
+    return res.status(400).json({ error: 'El parámetro "search" es obligatorio.' });
+  }
+
+  try {
+    // Obtener la conexión del pool de buquesinvoice
+    const connectionBuques = await poolBuquesInvoice.getConnection();
+
+    // Realiza la consulta para buscar proveedores
+    const query = 'SELECT * FROM proveedores WHERE nombre LIKE ?';
+    const [results] = await connectionBuques.query(query, [`%${search}%`]);
+
+    // Si no se encuentran proveedores
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'No se encontraron proveedores.' });
     }
+
+    // Devuelve los proveedores encontrados
     res.json(results);
-  });
+    connectionBuques.release();
+  } catch (err) {
+    console.error('Error en la consulta de proveedores:', err);
+    return res.status(500).json({ error: 'Error al obtener los proveedores.' });
+  }
 });
 
 
 //Endpoint para obtener el listado de facturas 
-app.get('/api/previewfacturas', (req, res) => {
+app.get('/api/previewfacturas', async (req, res) => {
   // Consulta SQL para obtener las facturas y sus datos relacionados
   const query = `
   SELECT 
@@ -258,36 +348,44 @@ app.get('/api/previewfacturas', (req, res) => {
   FROM facturas
 `;
 
-  console.log('Recibiendo solicitud para obtener facturas...');
-
-  // Ejecutar la consulta
-  checkConnectionAndQuery(query, (err, results) => {
-    if (err) {
-      console.error('Error al consultar los datos de las facturas:', err);
-      return res.status(500).json({ error: 'Error al consultar los datos de las facturas' });
-    }
+  try {
+    // Ejecutar la consulta usando el pool
+    const [results] = await poolBuquesInvoice.query(query);
 
     // Enviar los datos de las facturas como respuesta
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al consultar los datos de las facturas:', err);
+    res.status(500).json({ error: 'Error al consultar los datos de las facturas' });
+  }
 });
 
-app.get('/api/obtenerserviciosfacturas', (req, res) => {
-  const query = `
-  SELECT 
-    idserviciosfacturas, 
-    nombre, 
-    estado, 
-    idfactura
-  FROM serviciosfacturas
-  `;
-  connectionbuquesinvoice.query(query, (err, results) => {
-    if (err) {
-      console.error('Error al consultar los datos:', err);
-      return res.status(500).json({ error: 'Error al consultar los datos' });
-    }
+// Endpoint para obtener servicios de facturas
+app.get('/api/obtenerserviciosfacturas', async (req, res) => {
+  try {
+    // Obtener la conexión del pool de buquesinvoice
+    const connectionBuques = await poolBuquesInvoice.getConnection();
+
+    // Consulta para obtener los servicios de facturas
+    const query = `
+      SELECT 
+        idserviciosfacturas, 
+        nombre, 
+        estado, 
+        idfactura
+      FROM serviciosfacturas
+    `;
+
+    // Ejecutar la consulta
+    const [results] = await connectionBuques.query(query);
+
+    // Devolver los resultados
     res.json(results);
-  });
+    connectionBuques.release();
+  } catch (err) {
+    console.error('Error al consultar los datos:', err);
+    return res.status(500).json({ error: 'Error al consultar los datos' });
+  }
 });
 
 //---------------------------------------------------------------------------------------------------------------------------------
@@ -295,7 +393,7 @@ app.get('/api/obtenerserviciosfacturas', (req, res) => {
 
 
 // Endpoint para obtener todas las escalas que coincidan con lo buscado en agragar factura
-app.get('/api/buscarescalaasociada', (req, res) => {
+app.get('/api/buscarescalaasociada', async (req, res) => {
   const searchTerm = req.query.searchTermEscalaAsociada || ''; // Obtenemos el término de búsqueda desde la query string
 
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada, filtrado por buque
@@ -318,57 +416,55 @@ WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
   AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
 ORDER BY itinerarios.eta DESC;
   `;
-
   // Preparamos el término de búsqueda para el operador LIKE
   const searchTermWithWildcards = `%${searchTerm}%`;
 
-  // Ejecutar la consulta con el término de búsqueda como parámetro
-  connectionitinerarios.query(query, [searchTermWithWildcards], (err, results) => {
-    if (err) {
-      console.error('Error al consultar los datos de los itinerarios:', err);
-      return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
-    }
+  try {
+    // Obtener la conexión del pool de itinerarios
+    const connectionItinerarios = await poolItinerarios.getConnection();
 
-    // Enviar todos los datos de los itinerarios y sus relaciones como respuesta
+    // Ejecutar la consulta con el término de búsqueda como parámetro
+    const [results] = await connectionItinerarios.query(query, [searchTermWithWildcards]);
+
+    // Devolver los resultados
     res.json(results);
-  });
+    connectionItinerarios.release();
+  } catch (err) {
+    console.error('Error al consultar los datos de los itinerarios:', err);
+    return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
+  }
 });
 
 
 // Endpoint para obtener todos los itinerarios con sus datos relacionados
-app.get('/api/previewescalas', (req, res) => {
+app.get('/api/previewescalas', async (req, res) => {
   // Consulta SQL con JOINs para obtener todos los datos de cada tabla relacionada
   const query = `
-      SELECT 
-        itinerarios.id,
-        DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
-        lineas.nombre AS linea,
-        buques.nombre AS buque,
-        puertos.nombre AS puerto,
-        operadores.nombre AS operador,
-        itinerarios.id_puerto
-      FROM itinerarios
-      LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
-      LEFT JOIN buques ON itinerarios.id_buque = buques.id
-      LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
-      LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-      WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+    SELECT 
+      itinerarios.id,
+      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+      lineas.nombre AS linea,
+      buques.nombre AS buque,
+      puertos.nombre AS puerto,
+      operadores.nombre AS operador,
+      itinerarios.id_puerto
+    FROM itinerarios
+    LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
+    LEFT JOIN buques ON itinerarios.id_buque = buques.id
+    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+    WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
       AND itinerarios.eta >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
       AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
-      ORDER BY itinerarios.eta DESC
-    `;
-  console.log('Recibiendo solicitud para obtener itinerarios...');
-
-   // Llamar a la función que maneja la conexión y la consulta
-   checkConnectionAndQueryItinerarios(query, (err, results) => {
-    if (err) {
-      console.error('Error al consultar los datos de los itinerarios:', err);
-      return res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
-    }
-
-    // Enviar todos los datos de los itinerarios y sus relaciones como respuesta
+    ORDER BY itinerarios.eta DESC
+  `;
+  try {
+    const [results] = await poolItinerarios.query(query);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al consultar los datos de los itinerarios:', err);
+    res.status(500).json({ error: 'Error al consultar los datos de los itinerarios' });
+  }
 });
 //-------------------------------------------------------------------------------------------------------------------------------------
 //Manejo de archivos para facturas
@@ -443,7 +539,7 @@ app.listen(5000, () => {
 });
 
 // Endpoint para obtener las facturas y sus URLs
-app.get('/api/obtenerfacturas', (req, res) => {
+app.get('/api/obtenerfacturas', async (req, res) => {
   const idOperador = req.query.id_operador; // Recibimos el id del operador
 
   if (!idOperador) {
@@ -479,68 +575,83 @@ app.get('/api/obtenerfacturas', (req, res) => {
     WHERE e.id_operador1 = ?;
   `;
 
-  // Ejecutar la consulta
-  connectionbuquesinvoice.query(query, [idOperador], (err, results) => {
-    if (err) {
-      console.error('Error al ejecutar la consulta combinada:', err);
-      return res.status(500).json({ error: 'Error al obtener las facturas y escalas' });
-    }
+  try {
+    // Obtener la conexión del pool de buquesinvoice
+    const connection = await poolBuquesInvoice.getConnection();
 
-    res.json(results); // Enviar los datos combinados al cliente
-  });
+    // Ejecutar la consulta con el idOperador como parámetro
+    const [results] = await connection.query(query, [idOperador]);
+
+    // Devolver los resultados
+    res.json(results);
+
+    // Liberar la conexión una vez que hemos terminado
+    connection.release();
+  } catch (err) {
+    console.error('Error al ejecutar la consulta combinada:', err);
+    return res.status(500).json({ error: 'Error al obtener las facturas y escalas' });
+  }
 });
 // Endpoint para obtener las facturas y sus URLs
-app.get('/api/obtenerfacturas2', (req, res) => {
+app.get('/api/obtenerfacturas2', async (req, res) => {
   const idOperador = req.query.id_operador; // Recibe el id del operador desde el frontend
   console.log('Operador recibido:', idOperador); // Aquí es donde se realiza el debug
-  // Si se pasa el id_operador, filtrar las facturas basadas en la escala asociada al operador
-  const queryEscalas = `
-    SELECT id
-    FROM itinerarios 
-    WHERE id_operador1 = ?;`;
 
-  // Usamos la conexión para itinerarios para consultar la tabla itinerarios
-  connectionitinerarios.query(queryEscalas, [idOperador], (err, escalas) => {
-    if (err) {
-      console.error('Error al obtener las escalas:', err);
-      return res.status(500).json({ error: 'Error al obtener las escalas' });
-    }
-    console.log('escalas recibido:', escalas); // Aquí es donde se realiza el debug
+  if (!idOperador) {
+    return res.status(400).json({ error: 'El ID del operador es requerido' });
+  }
+
+  try {
+    // Usamos el pool de itinerarios para obtener las escalas
+    const connectionItinerarios = await poolItinerarios.getConnection();
+    const [escalas] = await connectionItinerarios.query(`
+      SELECT id 
+      FROM itinerarios 
+      WHERE id_operador1 = ?;
+    `, [idOperador]);
+
+    console.log('Escalas recibidas:', escalas); // Aquí es donde se realiza el debug
+
     // Si no hay escalas asociadas al operador, devolver un array vacío
     if (escalas.length === 0) {
-      return res.json([]); // No hay facturas si no hay escalas
+      return res.json([]);
     }
 
     // Obtener los números de las escalas
     const escalaNumeros = escalas.map(escala => escala.id);
-    console.log(escalaNumeros);
-    // Consulta SQL para obtener las facturas basadas en las escalas asociadas al operador
-    const queryFacturas = `
-      SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, comentarios
+    console.log('Escala números:', escalaNumeros);
+
+    // Usamos el pool de buquesinvoice para obtener las facturas basadas en las escalas
+    const connectionBuquesinvoice = await poolBuquesinvoice.getConnection();
+    const [facturas] = await connectionBuquesinvoice.query(`
+      SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, 
+             url_factura, url_notacredito, estado, comentarios
       FROM facturas
       WHERE escala_asociada IN (?);
-      `;
+    `, [escalaNumeros]);
 
-    // Usamos la conexión para buquesinvoice para obtener las facturas
-    connectionbuquesinvoice.query(queryFacturas, [escalaNumeros], (err, results) => {
-      if (err) {
-        console.error('Error al obtener las facturas:', err);
-        return res.status(500).json({ error: 'Error al obtener las facturas' });
-      }
-      console.log('resultado:', results);
-      res.json(results); // Devolver las facturas que coinciden con las escalas del operador
-    });
-  });
+    console.log('Resultados de facturas:', facturas);
+
+    // Devolver las facturas que coinciden con las escalas del operador
+    res.json(facturas);
+
+    // Liberar las conexiones
+    connectionItinerarios.release();
+    connectionBuquesinvoice.release();
+  } catch (err) {
+    console.error('Error en la consulta:', err);
+    return res.status(500).json({ error: 'Error al obtener las facturas y escalas' });
+  }
 });
 
-//Endpoint para guardar los comentarios de la nc en la base
+// Endpoint para guardar los comentarios de la nc en la base
 app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
   const { idfactura } = req.params;
   const { comentario } = req.body;
 
   try {
     const query = 'UPDATE facturas SET comentarios = ? WHERE idfacturas = ?';
-    await checkConnectionAndQuery(query, [comentario, idfactura]);
+    await poolBuquesInvoice.query(query, [comentario, idfactura]);
     res.status(200).json({ message: 'Comentario guardado correctamente.' });
   } catch (error) {
     console.error('Error al guardar el comentario:', error);
@@ -549,7 +660,7 @@ app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
 });
 
 //Endpoint para obtener servicios asociados a las facturas
-app.get('/api/obtenerservicios/:idfactura', (req, res) => {
+app.get('/api/obtenerservicios/:idfactura', async (req, res) => {
   const { idfactura } = req.params;
 
   const query = `
@@ -560,19 +671,18 @@ app.get('/api/obtenerservicios/:idfactura', (req, res) => {
     FROM serviciosfacturas
     WHERE idfactura = ?
   `;
-
-  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
-    if (err) {
-      console.error('Error al consultar los servicios:', err);
-      return res.status(500).json({ error: 'Error al consultar los servicios' });
-    }
-
+  try {
+    // Usamos el pool de conexiones
+    const [results] = await poolBuquesInvoice.query(query, [idfactura]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al consultar los servicios:', err);
+    res.status(500).json({ error: 'Error al consultar los servicios' });
+  }
 });
 
 // Endpoint para actualizar el estado de un servicio
-app.put('/api/actualizarestadoservicios/:id', (req, res) => {
+app.put('/api/actualizarestadoservicios/:id', async (req, res) => {
   const { id } = req.params;
   const { estado } = req.body;
 
@@ -581,23 +691,22 @@ app.put('/api/actualizarestadoservicios/:id', (req, res) => {
     SET estado = ?
     WHERE idserviciosfacturas = ?
   `;
-
-  connectionbuquesinvoice.query(query, [estado, id], (err, results) => {
-    if (err) {
-      console.error('Error al actualizar el estado del servicio:', err);
-      return res.status(500).json({ error: 'Error al actualizar el estado del servicio' });
-    }
+  try {
+    const [results] = await poolBuquesInvoice.query(query, [estado, id]);
 
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
     }
 
     res.json({ message: 'Estado del servicio actualizado correctamente' });
-  });
+  } catch (err) {
+    console.error('Error al actualizar el estado del servicio:', err);
+    res.status(500).json({ error: 'Error al actualizar el estado del servicio' });
+  }
 });
 
 // Endpoint para verificar y actualizar el estado de la factura
-app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
+app.put('/api/facturas/:id/actualizar-estado', async (req, res) => {
   const { id } = req.params;
   const { cambioestadouser, fechacambioestado } = req.body;
 
@@ -605,18 +714,14 @@ app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
   if (!cambioestadouser || !fechacambioestado) {
     return res.status(400).json({ error: 'Faltan parámetros requeridos: cambioestadouser o fechacambioestado' });
   }
-
-  const queryServicios = `
+  try {
+    const queryServicios = `
     SELECT estado
     FROM serviciosfacturas
     WHERE idfactura = ?
   `;
 
-  connectionbuquesinvoice.query(queryServicios, [id], (err, servicios) => {
-    if (err) {
-      console.error('Error al obtener los estados de los servicios:', err);
-      return res.status(500).json({ error: 'Error al obtener los estados de los servicios' });
-    }
+    const [servicios] = await poolBuquesInvoice.query(queryServicios, [id]);
 
     if (servicios.length === 0) {
       return res.status(404).json({ error: 'No se encontraron servicios para la factura' });
@@ -640,56 +745,60 @@ app.put('/api/facturas/:id/actualizar-estado', (req, res) => {
       WHERE idfacturas = ?
     `;
 
-    connectionbuquesinvoice.query(queryActualizarFactura, [nuevoEstadoFactura, cambioestadouser, fechacambioestado, id], (err, results) => {
-      if (err) {
-        console.error('Error al actualizar el estado de la factura:', err);
-        return res.status(500).json({ error: 'Error al actualizar el estado de la factura' });
-      }
+    const [result] = await poolBuquesInvoice.query(queryActualizarFactura, [nuevoEstadoFactura, cambioestadouser, fechacambioestado, id]);
 
-      res.json({ message: 'Estado de la factura actualizado', estado: nuevoEstadoFactura });
-    });
-  });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+
+    res.json({ message: 'Estado de la factura actualizado', estado: nuevoEstadoFactura });
+
+  } catch (err) {
+    console.error('Error al actualizar el estado de la factura:', err);
+    res.status(500).json({ error: 'Error al actualizar el estado de la factura' });
+  }
 });
 
 
 // Endpoint para obtener una factura específica con su estado actualizado
-app.get('/api/obtenerestadoactualizadofacturas/:idfacturas', (req, res) => {
+app.get('/api/obtenerestadoactualizadofacturas/:idfacturas', async (req, res) => {
   const { idfacturas } = req.params;
 
   // Query para obtener los detalles de la factura con su estado
   const query = 'SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, comentarios FROM facturas WHERE idfacturas = ?';
-
-  connectionbuquesinvoice.query(query, [idfacturas], (err, results) => {
-    if (err) {
-      console.error('Error al obtener la factura:', err);
-      return res.status(500).json({ error: 'Error al obtener la factura' });
-    }
+  try {
+    // Ejecutar la consulta usando el pool de conexiones
+    const [results] = await poolBuquesInvoice.query(query, [idfacturas]);
 
     if (results.length === 0) {
       return res.status(404).json({ message: 'Factura no encontrada' });
     }
 
-    res.json(results[0]); // Enviar los detalles de la factura encontrada
-  });
+    // Devolver los detalles de la factura encontrada
+    res.json(results[0]);
+  } catch (err) {
+    console.error('Error al obtener la factura:', err);
+    return res.status(500).json({ error: 'Error al obtener la factura' });
+  }
 });
 
 // Endpoint para obtener los operadores
-app.get('/api/obteneroperadores', (req, res) => {
+app.get('/api/obteneroperadores', async (req, res) => {
   const query = 'SELECT id, nombre FROM operadores WHERE operador COLLATE latin1_swedish_ci = "s" AND activo COLLATE latin1_swedish_ci = "s"'; // Solo traer operadores activos
 
-  connectionitinerarios.query(query, (err, results) => {
-    if (err) {
-      console.error('Error al obtener los operadores:', err);
-      return res.status(500).json({ error: 'Error al obtener los operadores' });
-    }
+  try {
+    const [results] = await poolItinerarios.query(query);
 
     // Enviar la lista de operadores como respuesta
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al obtener los operadores:', err);
+    return res.status(500).json({ error: 'Error al obtener los operadores' });
+  }
 });
 
 // Endpoint para obtener una escala específica por id
-app.get('/api/viewescala/:id', (req, res) => {
+app.get('/api/viewescala/:id', async (req, res) => {
   const escalaId = req.params.id; // Obtenemos el id de la URL
 
   const query = `
@@ -708,12 +817,9 @@ app.get('/api/viewescala/:id', (req, res) => {
     WHERE itinerarios.id = ?;
   `;
 
-  // Ejecutar la consulta con el id de la escala como parámetro
-  connectionitinerarios.query(query, [escalaId], (err, results) => {
-    if (err) {
-      console.error('Error al consultar los datos de la escala:', err);
-      return res.status(500).json({ error: 'Error al consultar los datos de la escala' });
-    }
+  try {
+    // Ejecutar la consulta con el id de la escala como parámetro usando el pool de itinerarios
+    const [results] = await poolItinerarios.query(query, [escalaId]);
 
     if (results.length === 0) {
       return res.status(404).json({ error: 'Escala no encontrada' });
@@ -721,24 +827,24 @@ app.get('/api/viewescala/:id', (req, res) => {
 
     // Enviar los datos de la escala encontrada como respuesta
     res.json(results[0]);
-  });
+  } catch (err) {
+    console.error('Error al consultar los datos de la escala:', err);
+    return res.status(500).json({ error: 'Error al consultar los datos de la escala' });
+  }
 });
 
 
 
-
 // Endpoint para eliminar una factura
-app.delete('/api/eliminarfactura/:id', (req, res) => {
-  const { id } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+app.delete('/api/eliminarfactura/:id', async (req, res) => {
+  const { id } = req.params;  // Obtenemos el idfactura desde los parámetros de la URL
 
   // Consulta SQL para eliminar la factura de la base de datos
   const query = 'DELETE FROM facturas WHERE idfacturas = ?';
 
-  connectionbuquesinvoice.query(query, [id], (err, results) => {
-    if (err) {
-      console.error('Error al eliminar la factura:', err);
-      return res.status(500).json({ error: 'Error al eliminar la factura' });
-    }
+  try {
+    // Ejecutamos la consulta usando el pool de conexiones
+    const [results] = await poolBuquesInvoice.query(query, [id]);
 
     if (results.affectedRows === 0) {
       // Si no se eliminó ninguna fila, significa que no se encontró la factura
@@ -747,12 +853,15 @@ app.delete('/api/eliminarfactura/:id', (req, res) => {
 
     // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
     res.json({ message: 'Factura eliminada con éxito' });
-  });
+  } catch (err) {
+    console.error('Error al eliminar la factura:', err);
+    return res.status(500).json({ error: 'Error al eliminar la factura' });
+  }
 });
 
 
 // Endpoint para modificar datos de la factura
-app.put('/api/modificarfactura', (req, res) => {
+app.put('/api/modificarfactura', async (req, res) => {
   console.log("Datos recibidos para modificar:", req.body); // Verificar los datos que llegan
 
   const { idfactura, numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado, servicios } = req.body;
@@ -767,12 +876,11 @@ app.put('/api/modificarfactura', (req, res) => {
     return res.status(400).send("Error: Se deben proporcionar servicios asociados a la factura.");
   }
 
-  // Iniciar la transacción
-  connectionbuquesinvoice.beginTransaction((err) => {
-    if (err) {
-      console.error("Error al comenzar la transacción:", err);
-      return res.status(500).send("Error al comenzar la transacción");
-    }
+  const connection = await poolBuquesInvoice.getConnection();
+  try {
+    // Iniciar la transacción
+    await connection.beginTransaction();
+
 
     // Actualizar la factura
     const sqlFactura = `
@@ -782,75 +890,58 @@ app.put('/api/modificarfactura', (req, res) => {
     `;
     const valuesFactura = [numero, fecha, moneda, monto, escala_asociada, proveedor, url_factura, url_notacredito, estado, gia, pre_aprobado, idfactura];
 
-    connectionbuquesinvoice.query(sqlFactura, valuesFactura, (err) => {
-      if (err) {
-        return connectionbuquesinvoice.rollback(() => {
-          console.error("Error al actualizar la factura:", err);
-          return res.status(500).send("Error al actualizar la factura");
-        });
-      }
+    await connection.query(sqlFactura, valuesFactura);
 
-      // Eliminar los servicios existentes para esta factura
-      const sqlDeleteServicios = `
+    // Eliminar los servicios existentes para esta factura
+    const sqlDeleteServicios = `
         DELETE FROM serviciosfacturas
         WHERE idfactura = ?
       `;
 
-      connectionbuquesinvoice.query(sqlDeleteServicios, [idfactura], (err) => {
-        if (err) {
-          return connectionbuquesinvoice.rollback(() => {
-            console.error("Error al eliminar los servicios existentes:", err);
-            return res.status(500).send("Error al eliminar los servicios existentes");
-          });
-        }
+    await connection.query(sqlDeleteServicios, [idfactura]);
 
-        // Insertar los nuevos servicios asociados
-        const sqlInsertServicios = `
+    // Insertar los nuevos servicios asociados
+    const sqlInsertServicios = `
           INSERT INTO serviciosfacturas (nombre, estado, idfactura)
           VALUES ?
         `;
-        const serviciosValues = servicios.map(servicio => [
-          servicio.servicio,
-          servicio.estado,
-          idfactura
-        ]);
+    const serviciosValues = servicios.map(servicio => [
+      servicio.servicio,
+      servicio.estado,
+      idfactura
+    ]);
 
-        connectionbuquesinvoice.query(sqlInsertServicios, [serviciosValues], (err) => {
-          if (err) {
-            return connectionbuquesinvoice.rollback(() => {
-              console.error("Error al insertar los nuevos servicios:", err);
-              return res.status(500).send("Error al insertar los nuevos servicios");
-            });
-          }
+    await connection.query(sqlInsertServicios, [serviciosValues]);
+    // Commit de la transacción si todo fue exitoso
+    await connection.commit();
 
-          // Commit de la transacción si todo fue exitoso
-          return connectionbuquesinvoice.commit((err) => {
-            if (err) {
-              return connectionbuquesinvoice.rollback(() => {
-                console.error("Error al hacer commit:", err);
-                return res.status(500).send("Error al hacer commit");
-              });
-            }
-
-            return res.json({ message: "Factura y servicios modificados exitosamente" });
-          });
-        });
-      });
-    });
-  });
+    return res.json({ message: "Factura y servicios modificados exitosamente" });
+  } catch (err) {
+    // En caso de error, hacer rollback de la transacción
+    await connection.rollback();
+    console.error("Error al modificar la factura o servicios:", err);
+    return res.status(500).send("Error al modificar la factura o servicios");
+  } finally {
+    // Liberar la conexión del pool
+    connection.release();
+  }
 });
 
 // Endpoint para eliminar servicio en escala
-app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
-  const { idservicio } = req.params;  // Cambiado a req.params
+app.delete('/api/escalas/eliminarservicio/:idservicio', async (req, res) => {
+  const { idservicio } = req.params; // Usando req.params para obtener el parámetro de la ruta
 
-  const query = 'DELETE FROM serviciosescalas WHERE idservicio = ?';
+  if (!idservicio) {
+    return res.status(400).json({ error: 'El parámetro idservicio es obligatorio' });
+  }
 
-  connectionbuquesinvoice.query(query, [idservicio], (err, results) => {
-    if (err) {
-      console.error('Error al eliminar el servicio de la escala:', err);
-      return res.status(500).json({ error: 'Error al eliminar el servicio' });
-    }
+  let connection;
+  try {
+    // Obtener la conexión del pool
+    connection = await poolBuquesInvoice.getConnection();
+
+    const query = 'DELETE FROM serviciosescalas WHERE idservicio = ?';
+    const [results] = await connection.query(query, [idservicio]);
 
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
@@ -858,34 +949,50 @@ app.delete('/api/escalas/eliminarservicio/:idservicio', (req, res) => {
 
     // Enviar una respuesta indicando que la eliminación fue exitosa
     res.json({ message: 'Servicio eliminado con éxito' });
-  });
+  } catch (err) {
+    console.error('Error al eliminar el servicio de la escala:', err);
+    res.status(500).json({ error: 'Error al eliminar el servicio' });
+  } finally {
+    // Asegurar que la conexión se libere
+    if (connection) connection.release();
+  }
 });
 
-// Endpoint para eliminar una factura
-app.delete('/api/eliminarserviciosfactura:idfactura', (req, res) => {
-  const { idfactura } = req.params;  // Obtenemos el idfacturas desde los parámetros de la URL
+// Endpoint para eliminar los servicios asociados a una factura
+app.delete('/api/eliminarserviciosfactura/:idfactura', async (req, res) => {
+  const { idfactura } = req.params;  // Obtenemos el idfactura desde los parámetros de la URL
 
-  // Consulta SQL para eliminar la factura de la base de datos
-  const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+  // Verificar si se ha recibido el idfactura
+  if (!idfactura) {
+    return res.status(400).json({ error: 'ID de la factura es requerido' });
+  }
 
-  connectionbuquesinvoice.query(query, [idfactura], (err, results) => {
-    if (err) {
-      console.error('Error al eliminar la factura svicios:', err);
-      return res.status(500).json({ error: 'Error al eliminar la factura servicios' });
-    }
+  try {
+    // Obtener una conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
 
+    // Consulta SQL para eliminar los servicios asociados a la factura
+    const query = 'DELETE FROM serviciosfacturas WHERE idfactura = ?';
+    const [results] = await connection.query(query, [idfactura]);
+
+    // Verificar si se eliminaron registros
     if (results.affectedRows === 0) {
-      // Si no se eliminó ninguna fila, significa que no se encontró la factura
-      return res.status(404).json({ error: 'Factura servicis no encontrada' });
+      return res.status(404).json({ error: 'No se encontraron servicios para esta factura' });
     }
+
+    // Liberar la conexión del pool
+    connection.release();
 
     // Si la eliminación fue exitosa, devolvemos un mensaje de éxito
-    res.json({ message: 'Factura eliminada con éxito' });
-  });
+    res.json({ message: 'Servicios eliminados con éxito' });
+  } catch (err) {
+    console.error('Error al eliminar los servicios de la factura:', err);
+    return res.status(500).json({ error: 'Error al eliminar los servicios de la factura' });
+  }
 });
 
 // Endpoint para agregar un servicio a una escala
-app.post('/api/escalas/agregarservicio', (req, res) => {
+app.post('/api/escalas/agregarservicio', async (req, res) => {
   const { idEscala, servicio } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
   console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
 
@@ -893,47 +1000,64 @@ app.post('/api/escalas/agregarservicio', (req, res) => {
   if (!idEscala || !servicio) {
     return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
   }
+  try {
+    // Obtener una conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
 
-  const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+    // Consulta SQL para insertar el servicio en la escala
+    const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+    const [results] = await connection.query(query, [idEscala, servicio]);
 
-  connectionbuquesinvoice.query(query, [idEscala, servicio], (err, results) => {
-    if (err) {
-      console.error('Error al agregar el servicio a la escala:', err);
-      return res.status(500).json({ error: 'Error al agregar el servicio' });
-    }
+    // Liberar la conexión del pool
+    connection.release();
+
     // Respuesta indicando éxito en la adición del servicio
     res.status(200).json({
       message: 'Servicio agregado con éxito',
       servicioId: results.insertId,
     });
-    // Respuesta indicando éxito en la adición del servicio
     console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
-  });
+
+  } catch (err) {
+    console.error('Error al agregar el servicio a la escala:', err);
+    return res.status(500).json({ error: 'Error al agregar el servicio' });
+  }
 });
 
-app.post('/api/escalas/agregarservicio2', (req, res) => {
+// Endpoint para agregar un servicio a una escala
+app.post('/api/escalas/agregarservicio2', async (req, res) => {
   const { selectedEscalaId, serviciomodalToUpper } = req.body;  // Obtiene id de la escala y el servicio desde el cuerpo de la solicitud
   console.log('Datos recibidos en el backend:', req.body); // Inspecciona los datos
-
 
   if (!selectedEscalaId || !serviciomodalToUpper) {
     return res.status(400).json({ error: 'ID de escala y nombre del servicio son requeridos' });
   }
 
-  const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+  try {
+    // Obtener una conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
 
-  connectionbuquesinvoice.query(query, [selectedEscalaId, serviciomodalToUpper], (err, results) => {
-    if (err) {
-      console.error('Error al agregar el servicio a la escala:', err);
-      return res.status(500).json({ error: 'Error al agregar el servicio' });
-    }
+    // Consulta SQL para insertar el servicio en la escala
+    const query = 'INSERT INTO serviciosescalas (idescala, nombre) VALUES (?, ?)';
+    const [results] = await connection.query(query, [selectedEscalaId, serviciomodalToUpper]);
+
+    // Liberar la conexión del pool
+    connection.release();
 
     // Respuesta indicando éxito en la adición del servicio
+    res.status(200).json({
+      message: 'Servicio agregado con éxito',
+      servicioId: results.insertId,
+    });
     console.log({ message: 'Servicio agregado con éxito', servicioId: results.insertId });
-  });
+
+  } catch (err) {
+    console.error('Error al agregar el servicio a la escala:', err);
+    return res.status(500).json({ error: 'Error al agregar el servicio' });
+  }
 });
 
-app.get('/api/viewescalafacturas/:id', (req, res) => {
+app.get('/api/viewescalafacturas/:id', async (req, res) => {
   const escalaId = req.params.id;
   console.log(`Escala ID recibido: ${escalaId}`); // Verifica el ID recibido
 
@@ -957,25 +1081,30 @@ app.get('/api/viewescalafacturas/:id', (req, res) => {
     WHERE facturas.escala_asociada = ?;
   `;
 
-  // Log para verificar la consulta antes de ejecutarla
-  console.log(`Ejecutando consulta: ${query} con ID: ${escalaId}`);
+  try {
+    // Obtener una conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
 
-  connectionbuquesinvoice.query(query, [escalaId], (err, results) => {
-    if (err) {
-      console.error('Error al consultar las facturas:', err); // Muestra el error específico
-      return res.status(500).json({ error: 'Error interno del servidor al consultar las facturas' });
-    }
+    // Ejecutar la consulta
+    const [results] = await connection.query(query, [escalaId]);
+
+    // Liberar la conexión del pool
+    connection.release();
 
     if (results.length === 0) {
-      return res.status(404).json({ error: 'No se encontraron facturas asociadas a la escala proporcionada' });
+      return res.json([]);
     }
 
     console.log('Facturas encontradas:', results); // Muestra los resultados obtenidos
-    res.json(results); // Envía todas las facturas en lugar de `results[0]`
-  });
+    res.json(results); // Envía las facturas encontradas
+
+  } catch (err) {
+    console.error('Error al consultar las facturas:', err); // Muestra el error específico
+    return res.status(500).json({ error: 'Error interno del servidor al consultar las facturas' });
+  }
 });
 
-app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
+app.get('/api/obtenerserviciospuertos/:puertos', async (req, res) => {
   const puertoId = req.params.puertos;
   console.log('Puerto ID recibido:', puertoId); // Asegúrate de que se imprime el valor correcto
   const query = `
@@ -983,24 +1112,31 @@ app.get('/api/obtenerserviciospuertos/:puertos', (req, res) => {
     FROM servicios
     WHERE servicios.puertos = ?;
   `;
-  connectionbuquesinvoice.query(query, [puertoId], (err, results) => {
-    if (err) {
-      console.error('Error al consultar los serviciospuertos:', err);
-      return res.status(500).json({ error: 'Error interno del servidor al consultar los servicios puertos' });
-    }
+  try {
+    // Obtener una conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
+
+    // Ejecutar la consulta
+    const [results] = await connection.query(query, [puertoId]);
+
+    // Liberar la conexión del pool
+    connection.release();
 
     if (results.length === 0) {
       console.log('No se encontraron servicios para este puerto');
-      return res.status(404).json({ error: 'No se encontraron servicios puertos' });
+      return res.status(404).json({ error: 'No se encontraron servicios para el puerto especificado' });
     }
 
     console.log('Servicios Puertos:', results);
-    res.json(results);
-  });
+    res.json(results); // Envía los resultados encontrados
+
+  } catch (err) {
+    console.error('Error al consultar los servicios puertos:', err);
+    return res.status(500).json({ error: 'Error interno del servidor al consultar los servicios puertos' });
+  }
 });
 
-
-app.post('/api/insertserviciospuertos', (req, res) => {
+app.post('/api/insertserviciospuertos', async (req, res) => {
   console.log('Cuerpo de la solicitud:', req.body);  // Verificar el contenido
   const servicios = req.body.servicios;
 
@@ -1010,28 +1146,39 @@ app.post('/api/insertserviciospuertos', (req, res) => {
 
   const query = 'INSERT INTO serviciosescalas (nombre, idescala) VALUES (?, ?)';
 
-  // Utilizar una transacción o Promise.all para manejar múltiples inserciones
-  const promises = servicios.map((servicio) => {
-    const { idescala, nombre } = servicio;
-    return new Promise((resolve, reject) => {
-      connectionbuquesinvoice.query(query, [nombre, idescala], (err, results) => {
-        if (err) return reject(err);
-        resolve(results);
-      });
-    });
-  });
+  // Usamos una transacción para insertar múltiples servicios de forma atómica
+  const connection = await poolBuquesInvoice.getConnection();
+  try {
+    // Iniciamos la transacción
+    await connection.beginTransaction();
 
-  Promise.all(promises)
-    .then((results) => {
-      res.json({ message: 'Servicios agregados con éxito', serviciosIds: results.map(r => r.insertId) });
-    })
-    .catch((err) => {
-      console.error('Error al agregar los servicios:', err);
-      res.status(500).json({ error: 'Error al agregar los servicios' });
-    });
+    // Insertamos todos los servicios en la base de datos
+    const serviciosIds = [];
+
+    for (const servicio of servicios) {
+      const { idescala, nombre } = servicio;
+      const [result] = await connection.query(query, [nombre, idescala]);
+      serviciosIds.push(result.insertId);
+    }
+
+    // Confirmamos la transacción
+    await connection.commit();
+
+    res.json({ message: 'Servicios agregados con éxito', serviciosIds });
+
+  } catch (err) {
+    // Si ocurre un error, deshacemos la transacción
+    await connection.rollback();
+    console.error('Error al agregar los servicios:', err);
+    res.status(500).json({ error: 'Error al agregar los servicios' });
+  } finally {
+    // Liberamos la conexión del pool
+    connection.release();
+  }
 });
+
 //Obtener todos los datos para listar los servicios en viewescala
-app.get('/api/viewescalaservicios/:id', (req, res) => {
+app.get('/api/viewescalaservicios/:id', async (req, res) => {
   console.log('Ruta alcanzada');
   console.log('ID Escala recibido:', req.params.id);  // Muestra el parámetro de la URL
 
@@ -1075,12 +1222,10 @@ app.get('/api/viewescalaservicios/:id', (req, res) => {
             WHERE f.escala_asociada = ?
         );
   `;
-  console.log('Conectando a la base de datos...');
-  connectionbuquesinvoice.query(query, [id, id, id, id, id], (err, results) => {
-    if (err) {
-      console.error('Error al obtener los servicios asociados a la escala:', err);
-      return res.status(500).json({ error: 'Error al obtener los servicios asociados a la escala' });
-    }
+  const connection = await poolBuquesInvoice.getConnection();  // Obtener conexión desde el pool
+  try {
+    console.log('Conectando a la base de datos...');
+    const [results] = await connection.query(query, [id, id, id, id, id]);
 
     console.log('Resultados obtenidos:', results); // Ver si los resultados se obtienen
 
@@ -1089,21 +1234,18 @@ app.get('/api/viewescalaservicios/:id', (req, res) => {
     }
 
     res.json({ servicios: results });
-  });
+  } catch (err) {
+    console.error('Error al obtener los servicios asociados a la escala:', err);
+    return res.status(500).json({ error: 'Error al obtener los servicios asociados a la escala' });
+  } finally {
+    connection.release();  // Liberamos la conexión del pool
+  }
 });
 
 
 // Función que envuelve la consulta en una promesa
-const queryPromise = (query, connection) => {
-  return new Promise((resolve, reject) => {
-    connection.query(query, (err, results) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(results);
-      }
-    });
-  });
+const queryPromise = (query, pool) => {
+  return pool.execute(query).then(([results]) => results); // Acceder directamente a los resultados
 };
 
 app.get('/api/exportarpdfsinnotas', async (req, res) => {
@@ -1144,42 +1286,50 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
     `;
 
     // Realizar la consulta a la base de datos de facturas
-    const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
+    const facturas = await queryPromise(queryFacturas, poolBuquesInvoice);
+    console.log(facturas);
     if (!Array.isArray(facturas) || facturas.length === 0) {
       return res.status(404).json({ error: 'No hay facturas para exportar.' });
     }
 
     // Obtener los IDs de las escalas asociadas
-    const escalaIds = facturas.map(factura => factura.escala_asociada);
-
+    const escalaIds = facturas.map(factura => `'${factura.escala_asociada}'`);
+    console.log('escalasIds', escalaIds);
+    // Verificar si escalaIds tiene elementos
+    if (escalaIds.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas asociadas.' });
+    }
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
-      SELECT 
-        itinerarios.id AS escala_id,
-        itinerarios.viaje,
-        buques.nombre AS buque,
-        DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
-        puertos.nombre AS puerto,
-        operadores.nombre AS operador
-      FROM itinerarios
-      LEFT JOIN buques ON itinerarios.id_buque = buques.id
-      LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
-      LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-      WHERE itinerarios.id IN (${escalaIds.join(',')});
-    `;
+    SELECT 
+      itinerarios.id AS escala_id,
+      itinerarios.viaje,
+      buques.nombre AS buque,
+      DATE_FORMAT(itinerarios.eta, '%d-%m-%Y') AS eta,
+      puertos.nombre AS puerto,
+      operadores.nombre AS operador
+    FROM itinerarios
+    LEFT JOIN buques ON itinerarios.id_buque = buques.id
+    LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
+    LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
+    WHERE itinerarios.id IN (${escalaIds.join(',')});
+  ` ;
 
-    // Realizar la consulta a la base de datos de itinerarios
-    const escalas = await queryPromise(queryEscalas, connectionitinerarios);
+
+
+    const escalas = await queryPromise(queryEscalas, poolItinerarios);
     if (escalas.length === 0) {
       return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
     }
-
+    console.log('escalas', escalas);
+    
+    console.log('escalasFlattened', escalas);
     // Crear un mapa para acceder a los datos de las escalas rápidamente
     const escalasMap = escalas.reduce((acc, escala) => {
       acc[escala.escala_id] = escala;
       return acc;
     }, {});
-
+    console.log('escalasMap:', escalasMap);
     // Agrupar las facturas por escala
     const escalasConFacturas = facturas.reduce((acc, factura) => {
       const escalaId = factura.escala_asociada;
@@ -1313,14 +1463,16 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
     `;
 
     // Realizar la consulta a la base de datos 
-    const facturas = await queryPromise(queryFacturas, connectionbuquesinvoice);
+    const facturas = await queryPromise(queryFacturas, poolBuquesInvoice);
     if (!Array.isArray(facturas) || facturas.length === 0) {
       return res.status(404).json({ error: 'No hay facturas para exportar.' });
     }
 
     // Obtener los IDs de las escalas asociadas
-    const escalaIds = facturas.map(factura => factura.escala_asociada);
-
+    const escalaIds = facturas.map(factura => `'${factura.escala_asociada}'`);
+    if (escalaIds.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas asociadas.' });
+    }
     // Consulta SQL para obtener los datos de las escalas
     const queryEscalas = `
       SELECT 
@@ -1337,11 +1489,11 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       WHERE itinerarios.id IN (${escalaIds.join(',')});
     `;
 
-    // Realizar la consulta a la base de datos de itinerarios
-    const escalas = await queryPromise(queryEscalas, connectionitinerarios);
-    if (escalas.length === 0) {
-      return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
-    }
+      const escalas = await queryPromise(queryEscalas, poolItinerarios);
+      if (escalas.length === 0) {
+        return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
+      }
+
 
     // Crear un mapa para acceder a los datos de las escalas rápidamente
     const escalasMap = escalas.reduce((acc, escala) => {
@@ -1476,7 +1628,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       WHERE idfacturas IN (${facturasProcesadas.join(',')});
     `;
 
-    await queryPromise(queryUpdateGia, connectionbuquesinvoice);
+    await queryPromise(queryUpdateGia, poolBuquesInvoice);
 
     // Enviar el PDF como respuesta para descarga
     res.download(pdfPathSinNC, 'reporte_facturas_sin_NC.pdf', (err) => {
@@ -1495,52 +1647,52 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
 
 
 // Endpoint para obtener las facturas pendientes
-app.get('/api/facturas/pendientes/:idOperador', (req, res) => {
+app.get('/api/facturas/pendientes/:idOperador', async (req, res) => {
   const idOperador = req.params.idOperador;
 
-  // 1. Consultar todas las escalas asociadas al operador en la base de datos de itinerarios
-  const queryItinerarios = `
+  try {
+    // 1. Consultar todas las escalas asociadas al operador en la base de datos de itinerarios
+    const queryItinerarios = `
       SELECT id
       FROM itinerarios
       WHERE id_operador1 = ?
-  `;
+    `;
 
-  connectionitinerarios.query(queryItinerarios, [idOperador], (err, results) => {
-    if (err) {
-      console.error('Error al consultar itinerarios:', err);
-      return res.status(500).json({ error: 'Error al obtener los itinerarios' });
-    }
+    const connectionItinerarios = await poolItinerarios.getConnection();
+    const [itinerariosResults] = await connectionItinerarios.query(queryItinerarios, [idOperador]);
+    connectionItinerarios.release();
 
     // Si no se encuentran escalas asociadas al operador
-    if (results.length === 0) {
+    if (itinerariosResults.length === 0) {
       return res.status(404).json({ error: 'No se encontraron escalas asociadas al operador' });
     }
 
     // Obtener los IDs de las escalas asociadas al operador
-    const escalas = results.map(result => result.id);
+    const escalas = itinerariosResults.map(result => result.id);
+    console.log('escalas:', escalas);
 
     // 2. Consultar las facturas pendientes que tienen cualquiera de las escalas asociadas al operador
     const queryFacturas = `
-          SELECT COUNT(idfacturas) AS pendientes
-          FROM facturas
-          WHERE escala_asociada IN (?) 
-          AND estado = 'Pendiente'
-      `;
+      SELECT COUNT(idfacturas) AS pendientes
+      FROM facturas
+      WHERE escala_asociada IN (?)
+      AND estado = 'Pendiente'
+    `;
 
-    // Ejecutar la consulta en la base de datos de facturas
-    connectionbuquesinvoice.query(queryFacturas, [escalas], (err, facturaResults) => {
-      if (err) {
-        console.error('Error en la consulta de facturas:', err);
-        return res.status(500).json({ error: 'Error al obtener las facturas pendientes' });
-      }
+    const connectionFacturas = await poolBuquesInvoice.getConnection();
+    const [facturaResults] = await connectionFacturas.query(queryFacturas, [escalas]);
+    console.log(facturaResults);
+    connectionFacturas.release();
 
-      // Enviar el número de facturas pendientes
-      res.json({ pendientes: facturaResults[0].pendientes });
-    });
-  });
+    // Enviar el número de facturas pendientes
+    res.json({ pendientes: facturaResults[0].pendientes });
+  } catch (err) {
+    console.error('Error al obtener las facturas pendientes:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
-app.get('/api/escalas/pendientes/:idOperador', (req, res) => {
+app.get('/api/escalas/pendientes/:idOperador', async (req, res) => {
   const idOperador = req.params.idOperador;
 
   // 1. Consulta para obtener itinerarios con facturas pendientes en ambas bases de datos
@@ -1572,22 +1724,30 @@ HAVING facturasPendientes > 0
 ORDER BY itinerarios_prod.itinerarios.eta DESC
   `;
 
-  checkConnectionAndQuery(query, [idOperador], (err, results) => {
-    if (err) {
-      console.error('Error al consultar itinerarios:', err);
-      return res.status(500).json({ error: 'Error al obtener los itinerarios' });
-    }
+  try {
+    // Obtener una conexión del pool de `buquesinvoice`
+    const connection = await poolBuquesInvoice.getConnection();
 
+    // Realizar la consulta
+    const [results] = await connection.query(query, [idOperador]);
+
+    // Liberar la conexión
+    connection.release();
+
+    // Si no se encontraron resultados
     if (results.length === 0) {
       return res.status(404).json({ error: 'No se encontraron escalas con facturas pendientes' });
     }
 
     // Responder con los itinerarios que tienen facturas pendientes
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al consultar itinerarios:', err);
+    res.status(500).json({ error: 'Error al obtener los itinerarios' });
+  }
 });
 // Endpoint para obtener facturas con estado "Requiere Nc"
-app.get('/api/facturas/requierenc', (req, res) => {
+app.get('/api/facturas/requierenc', async (req, res) => {
   const query = `
     SELECT 
     idfacturas, 
@@ -1604,17 +1764,25 @@ app.get('/api/facturas/requierenc', (req, res) => {
     AND DATEDIFF(CURDATE(), fecha) <= 15
   `;
 
-  checkConnectionAndQuery(query, (err, results) => {
-    if (err) {
-      console.error('Error al consultar facturas:', err);
-      return res.status(500).json({ error: 'Error al obtener las facturas' });
-    }
+  try {
+    // Obtener una conexión del pool de `buquesinvoice`
+    const connection = await poolBuquesInvoice.getConnection();
 
+    // Realizar la consulta
+    const [results] = await connection.query(query);
+
+    // Liberar la conexión
+    connection.release();
+
+    // Responder con los resultados
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error al consultar facturas:', err);
+    res.status(500).json({ error: 'Error al obtener las facturas' });
+  }
 });
 //Endpoint para Actualizar la factura que se le cargo como reclamado en la nc
-app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
+app.patch('/api/facturas/:idfacturas/reclamadonc', async (req, res) => {
   const { idfacturas } = req.params;
   const { reclamadonc, ultimoreclamadoncuser, fechareclamadonc } = req.body;
 
@@ -1633,25 +1801,29 @@ app.patch('/api/facturas/:idfacturas/reclamadonc', (req, res) => {
     WHERE idfacturas = ?
   `;
 
-  connectionbuquesinvoice.query(
-    query,
-    [reclamadonc, ultimoreclamadoncuser, formattedDate, idfacturas],
-    (err, results) => {
-      if (err) {
-        console.error('Error al actualizar la factura:', err);
-        return res.status(500).json({ error: 'Error al actualizar la factura' });
-      }
+  try {
+    // Obtener conexión del pool `buquesinvoice`
+    const connection = await poolBuquesInvoice.getConnection();
 
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ error: 'Factura no encontrada' });
-      }
+    // Ejecutar consulta
+    const [results] = await connection.query(query, [reclamadonc, ultimoreclamadoncuser, formattedDate, idfacturas]);
 
-      res.json({ message: 'Factura actualizada correctamente' });
+    // Liberar conexión
+    connection.release();
+
+    // Verificar si se actualizó alguna fila
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Factura no encontrada' });
     }
-  );
+
+    res.json({ message: 'Factura actualizada correctamente' });
+  } catch (err) {
+    console.error('Error al actualizar la factura:', err);
+    res.status(500).json({ error: 'Error al actualizar la factura' });
+  }
 });
 
-app.get('/api/obtenerprogresoescalas', (req, res) => {
+app.get('/api/obtenerprogresoescalas', async (req, res) => {
   // Query para obtener las escalas con los servicios asociados
   const query = `
    SELECT 
@@ -1675,60 +1847,66 @@ WHERE i.eta >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)  -- Filtro para escalas con 
 GROUP BY se.idescala, b.nombre, i.eta;
   `;
 
-  connectionitinerarios.query(query, (err, results) => {
-    if (err) {
-      console.error('Error ejecutando la consulta:', err);
-      return res.status(500).json({ message: 'Error al obtener los datos de escalas' });
-    }
+  try {
+    // Obtener conexión del pool `itinerarios`
+    const connection = await poolItinerarios.getConnection();
+
+    // Ejecutar consulta
+    const [results] = await connection.query(query);
+
+    // Liberar conexión
+    connection.release();
 
     // Enviar los resultados de la consulta
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error ejecutando la consulta:', err);
+    res.status(500).json({ message: 'Error al obtener los datos de escalas' });
+  }
 });
 
 // Endpoint para actualizar o insertar escalas urgentes
-app.post('/api/actualizarurgencia', (req, res) => {
+app.post('/api/actualizarurgencia', async (req, res) => {
   const { idescala, esurgente } = req.body;
 
   if (!idescala) {
     return res.status(400).json({ error: 'El campo idescala es obligatorio' });
   }
 
-  // Verificar si ya existe un registro para esa escala
-  const querySelect = 'SELECT * FROM escalasurgentes WHERE idescala = ?';
+  try {
+    // Obtener conexión del pool
+    const connection = await poolBuquesInvoice.getConnection();
 
-  connectionbuquesinvoice.query(querySelect, [idescala], (err, results) => {
-    if (err) {
-      console.error('Error al consultar la tabla escalasurgentes:', err);
-      return res.status(500).json({ error: 'Error en el servidor al consultar escalas urgentes' });
+    try {
+      // Verificar si ya existe un registro para esa escala
+      const [selectResults] = await connection.query(
+        'SELECT * FROM escalasurgentes WHERE idescala = ?',
+        [idescala]
+      );
+
+      if (selectResults.length > 0) {
+        // Si ya existe, actualizar el registro
+        await connection.query(
+          'UPDATE escalasurgentes SET esurgente = ? WHERE idescala = ?',
+          [esurgente, idescala]
+        );
+        res.status(200).json({ message: 'Escala actualizada correctamente como urgente' });
+      } else {
+        // Si no existe, insertar un nuevo registro
+        await connection.query(
+          'INSERT INTO escalasurgentes (idescala, esurgente) VALUES (?, ?)',
+          [idescala, esurgente]
+        );
+        res.status(201).json({ message: 'Escala insertada correctamente como urgente' });
+      }
+    } finally {
+      // Liberar la conexión
+      connection.release();
     }
-
-    if (results.length > 0) {
-      // Si ya existe, actualizar el registro
-      const queryUpdate = 'UPDATE escalasurgentes SET esurgente = ? WHERE idescala = ?';
-
-      connectionbuquesinvoice.query(queryUpdate, [esurgente, idescala], (err) => {
-        if (err) {
-          console.error('Error al actualizar la tabla escalasurgentes:', err);
-          return res.status(500).json({ error: 'Error en el servidor al actualizar escalas urgentes' });
-        }
-
-        return res.status(200).json({ message: 'Escala actualizada correctamente como urgente' });
-      });
-    } else {
-      // Si no existe, insertar un nuevo registro
-      const queryInsert = 'INSERT INTO escalasurgentes (idescala, esurgente) VALUES (?, ?)';
-
-      connectionbuquesinvoice.query(queryInsert, [idescala, esurgente], (err) => {
-        if (err) {
-          console.error('Error al insertar en la tabla escalasurgentes:', err);
-          return res.status(500).json({ error: 'Error en el servidor al insertar escalas urgentes' });
-        }
-
-        return res.status(201).json({ message: 'Escala insertada correctamente como urgente' });
-      });
-    }
-  });
+  } catch (err) {
+    console.error('Error al procesar escalas urgentes:', err);
+    res.status(500).json({ error: 'Error en el servidor al procesar escalas urgentes' });
+  }
 });
 
 app.get('/', (req, res) => {
