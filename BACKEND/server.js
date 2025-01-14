@@ -24,6 +24,7 @@ app.use((req, res, next) => {
 });
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 const connectionbuquesinvoice = mysql.createConnection({
   host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
@@ -98,6 +99,73 @@ connectionitinerarios.connect((err) => {
   }
   console.log('Conexión exitosa a la base de datos MySQL Itinerarios');
 });
+=======
+// Crear un pool para la base de datos `buquesinvoice`
+const poolBuquesInvoice = mysql2.createPool({
+  host: 'itinerarios.mysql.database.azure.com',
+  user: 'itinerariosdba',
+  password: '!Masterkey_22',
+  database: 'buquesinvoice',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 15, // Número máximo de conexiones en el pool
+  queueLimit: 0,       // Sin límite en la cola de espera
+  connectTimeout: 60000, // Tiempo máximo para conectar
+  idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
+});
+
+// Crear un pool para la base de datos `itinerarios_prod`
+const poolItinerarios = mysql2.createPool({
+  host: 'itinerarios.mysql.database.azure.com',
+  user: 'itinerariosdba',
+  password: '!Masterkey_22',
+  database: 'itinerarios_prod',
+  port: 3306,
+  waitForConnections: true,
+  connectionLimit: 15,
+  queueLimit: 0,
+  connectTimeout: 60000, // Tiempo máximo para conectar
+  idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
+});
+
+// Función para verificar el estado de cada pool
+const monitorPool = (pool, name) => {
+  setInterval(async () => {
+    try {
+      // Realiza una consulta simple para mantener la conexión activa
+      const [rows] = await pool.query('SELECT 1');
+      console.log(`${name} Pool está activo:`, {
+        // Aquí podrías agregar detalles del estado según lo que quieras rastrear
+        // Ejemplo: cantidad de conexiones activas, si es necesario
+        message: 'Conexión activa.',
+      });
+    } catch (err) {
+      console.error(`${name} Pool error:`, err.message);
+    }
+  }, 900000); // Monitorear cada 10 segundos
+};
+
+// Monitorear ambos pools
+monitorPool(poolBuquesInvoice, 'BuquesInvoice');
+monitorPool(poolItinerarios, 'Itinerarios');
+// Monitorear conexiones activas y liberadas
+poolBuquesInvoice.on('acquire', (connection) => {
+  console.log('Conexión adquirida para BuquesInvoice:', connection.threadId);
+});
+
+poolBuquesInvoice.on('release', (connection) => {
+  console.log('Conexión liberada de BuquesInvoice:', connection.threadId);
+});
+
+poolItinerarios.on('acquire', (connection) => {
+  console.log('Conexión adquirida para Itinerarios:', connection.threadId);
+});
+
+poolItinerarios.on('release', (connection) => {
+  console.log('Conexión liberada de Itinerarios:', connection.threadId);
+});
+
+>>>>>>> Stashed changes
 =======
 // Crear un pool para la base de datos `buquesinvoice`
 const poolBuquesInvoice = mysql2.createPool({
