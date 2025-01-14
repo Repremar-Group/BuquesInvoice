@@ -41,6 +41,7 @@ const Home = () => {
         .get(`${environment.API_URL}facturas/pendientes/${idOperador}`)
         .then((response) => {
           const pendientes = response.data.pendientes;
+          console.log(response.data.pendientes);
 
           if (pendientes > 0) {
             toast.error(`Tienes ${pendientes} facturas pendientes.`, {
