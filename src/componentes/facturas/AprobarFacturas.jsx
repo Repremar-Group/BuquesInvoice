@@ -16,6 +16,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
   const [isModalOpenNC, setIsModalOpenNC] = useState(false);
 
   const [isModalOpenComentarios, setIsModalOpenComentarios] = useState(false);  // Controla la visibilidad del modal
+  const [isModalOpenComentarios2, setIsModalOpenComentarios2] = useState(false);  // Controla la visibilidad del modal
   const [comentarios, setComentarios] = useState('');  // Almacena el comentario del usuario
   const [idServicioSeleccionado, setIdServicioSeleccionado] = useState(null);  // Guarda el id del servicio para actualizar la factura
   // Filtros
@@ -124,7 +125,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
 
     setFacturas(facturasFiltradas);
     console.log('listado de facturas filtradas', facturasFiltradas);
-    if (indiceFacturaActual > facturasFiltradas.length - 1) {
+    if ((indiceFacturaActual > facturasFiltradas.length - 1) && (facturas.length>1)) {
       setIndiceFacturaActual(facturasFiltradas.length-1);
     };
   };
@@ -336,6 +337,60 @@ const AprobarFacturas = ({ isLoggedIn }) => {
     }
   };
 
+  const handeAgregarComentario = () => {
+    setIsModalOpenComentarios2(true);
+  };
+
+  const handleGuardarComentario2 = async () => {
+    const usuario = localStorage.getItem('usuario');
+    const fechaActual = new Date().toISOString().split('T')[0];
+
+    if (!comentarios.trim()) {
+      toast.error('El comentario no puede estar vacío.');
+      return; // Detiene la ejecución de la función si el comentario está vacío.
+    }
+    try {
+      // Envía los comentarios a la base de datos
+      await axios.put(`${environment.API_URL}facturas/${facturaActual.idfacturas}/agregarcomentario`, {
+        comentario: comentarios,
+      });
+
+
+      const response = await axios.get(`${environment.API_URL}obtenerestadoactualizadofacturas/${facturaActual.idfacturas}`);
+
+      // Verifica si la respuesta contiene los datos actualizados correctamente
+      if (response.data && response.data.comentarios) {
+        // Actualizamos el estado de la factura actual con el nuevo comentario
+        setFacturaActual({
+          ...response.data,
+          comentario: comentarios, // Aseguramos que el comentario reciente esté incluido
+        });
+
+        // Actualizamos las facturas en el estado global
+        setFacturas((prevFacturas) =>
+          prevFacturas.map((factura) =>
+            factura.idfacturas === response.data.idfacturas ? response.data : factura
+          )
+        );
+
+        setFacturasOriginales((prevFacturasOriginales) =>
+          prevFacturasOriginales.map((factura) =>
+            factura.idfacturas === response.data.idfacturas ? response.data : factura
+          )
+        );
+
+        toast.success('Comentario guardado.');
+
+        // Cierra el modal
+        setIsModalOpenComentarios2(false);
+      } else {
+        toast.error('No se pudo obtener la factura actualizada.');
+      }
+    } catch (error) {
+      console.error('Error al guardar el comentario:', error);
+      toast.error('Hubo un error al guardar el comentario.');
+    }
+  };
 
 
   return (
@@ -373,6 +428,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
             )}
           </tbody>
         </table>
+        <button className='btn-estandar' onClick={handeAgregarComentario}>Agregar Comentario</button>
       </div>
 
       <div className="filtros">
@@ -563,6 +619,20 @@ const AprobarFacturas = ({ isLoggedIn }) => {
               placeholder="Ingresa los comentarios aquí..."
             />
             <button className='btn-estandar' onClick={handleGuardarComentario}>Guardar Comentario</button>
+          </div>
+        </div>
+      )}
+      {/* Modal Agregar Comentarios */}
+      {isModalOpenComentarios2 && (
+        <div className="modal-overlay active">
+          <div className="modalComentarios">
+            <h3 className='subtitulo-estandar'>Comentario</h3>
+            <textarea
+              value={comentarios}
+              onChange={(e) => setComentarios(e.target.value)}
+              placeholder="Ingresa los comentarios aquí..."
+            />
+            <button className='btn-estandar' onClick={handleGuardarComentario2}>Guardar Comentario</button>
           </div>
         </div>
       )}
