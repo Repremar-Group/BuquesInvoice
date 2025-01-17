@@ -124,6 +124,9 @@ const AprobarFacturas = ({ isLoggedIn }) => {
 
     setFacturas(facturasFiltradas);
     console.log('listado de facturas filtradas', facturasFiltradas);
+    if (indiceFacturaActual > facturasFiltradas.length - 1) {
+      setIndiceFacturaActual(facturasFiltradas.length-1);
+    };
   };
   useEffect(() => {
     // Llama a la función cada vez que cambie un filtro o las facturas originales
@@ -493,7 +496,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
           <input
             type="text"
             id="contadorFactura"
-            value={`${indiceFacturaActual + 1} / ${facturas.length}`}
+            value={`${indiceFacturaActual +1} / ${facturas.length}`}
             readOnly
           />
         </div>
