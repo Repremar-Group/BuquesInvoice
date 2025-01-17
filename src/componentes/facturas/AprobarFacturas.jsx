@@ -187,6 +187,11 @@ const AprobarFacturas = ({ isLoggedIn }) => {
       setFacturaActual(null);
       setEscala(null);  // Limpia los datos de la escala
       setIndiceFacturaActual(0);
+      //restablecen filtros
+      setNroFactura('');
+      setEstadoSeleccionado('');
+      setBuqueFiltro('');
+
 
       axios.get(`${environment.API_URL}obtenerfacturas`, {
         params: { id_operador: operador }
