@@ -31,7 +31,7 @@ const poolBuquesInvoice = mysql2.createPool({
   database: 'buquesinvoice',
   port: 3306,
   waitForConnections: true,
-  connectionLimit: 10, // Número máximo de conexiones en el pool
+  connectionLimit: 20, // Número máximo de conexiones en el pool
   queueLimit: 0,       // Sin límite en la cola de espera
   connectTimeout: 60000, // Tiempo máximo para conectar
   idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
@@ -45,7 +45,7 @@ const poolItinerarios = mysql2.createPool({
   database: 'itinerarios_prod',
   port: 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 20,
   queueLimit: 0,
   connectTimeout: 60000, // Tiempo máximo para conectar
   idleTimeout: 30000,   // Cerrar conexiones inactivas después de 30 segundos
@@ -87,81 +87,7 @@ poolItinerarios.on('acquire', (connection) => {
 poolItinerarios.on('release', (connection) => {
   console.log('Conexión liberada de Itinerarios:', connection.threadId);
 });
-/*
-const connectionbuquesinvoice = mysql.createConnection({
-  host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
-  user: 'itinerariosdba', // El usuario que creaste para la base de datos
-  password: '!Masterkey_22', // La contraseña del usuario
-  database: `buquesinvoice`, // El nombre de la base de datos
-  port: 3306, // Puerto predeterminado de MySQL
-  connectTimeout: 60000,
-});
-// Probar la conexión
-connectionbuquesinvoice.connect((err) => {
-  if (err) {
-    console.error('Error conectando a la base de datos:', err.stack);
-    return;
-  }
-  console.log('Conexión exitosa a la base de datos MySQL Buques');
-});
 
-// Función para comprobar la conexión antes de realizar la consulta
-function checkConnectionAndQuery(query, callback) {
-  console.log(connectionbuquesinvoice.state);
-  if (connectionbuquesinvoice.state === 'disconnected') {
-    console.log('Conexión perdida, reconectando...');
-    connectionbuquesinvoice.connect((err) => {
-      if (err) {
-        console.error('Error reconectando a la base de datos:', err.stack);
-        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
-      } else {
-        console.log('Reconexión exitosa');
-        connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta una vez reconectado
-      }
-    });
-  } else {
-    connectionbuquesinvoice.query(query, callback); // Ejecuta la consulta si ya está conectada
-  }
-}
-
-// Función para comprobar la conexión antes de realizar la consulta
-function checkConnectionAndQueryItinerarios(query, callback) {
-  console.log(connectionitinerarios.state);
-  if (connectionitinerarios.state === 'disconnected') {
-    console.log('Conexión perdida, reconectando...');
-    connectionitinerarios.connect((err) => {
-      if (err) {
-        console.error('Error reconectando a la base de datos:', err.stack);
-        return callback(err, null); // Devuelves el error en caso de fallo de reconexión
-      } else {
-        console.log('Reconexión exitosa');
-        connectionitinerarios.query(query, callback); // Ejecuta la consulta una vez reconectado
-      }
-    });
-  } else {
-    connectionitinerarios.query(query, callback); // Ejecuta la consulta si ya está conectada
-  }
-}
-
-
-// Configura la conexión a tu servidor MySQL flexible de Azure
-const connectionitinerarios = mysql.createConnection({
-  host: 'itinerarios.mysql.database.azure.com', // Tu servidor MySQL flexible de Azure
-  user: 'itinerariosdba', // El usuario que creaste para la base de datos
-  password: '!Masterkey_22', // La contraseña del usuario
-  database: 'itinerarios_prod', // El nombre de la base de datos
-  port: 3306, // Puerto predeterminado de MySQL
-  connectTimeout: 60000,
-});
-// Probar la conexión
-connectionitinerarios.connect((err) => {
-  if (err) {
-    console.error('Error conectando a la base de datos:', err.stack);
-    return;
-  }
-  console.log('Conexión exitosa a la base de datos MySQL Itinerarios');
-});
-*/
 const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountName=buquesinvoicestorage;AccountKey=PRS6t7RBIlqdX3IbicTEkX17CfnCkZmvXjrbU6Wv5ZB3TMu0qX0h4p5xhgZVtXsq0LAARFMP54C4+AStORDsuQ==;EndpointSuffix=core.windows.net';
 /*const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
