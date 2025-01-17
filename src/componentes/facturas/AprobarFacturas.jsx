@@ -515,7 +515,7 @@ const AprobarFacturas = ({ isLoggedIn }) => {
         )}
         <div className='BotonesPDFAprobarFacturas'>
           <button className='action-buttonaprobarfac' onClick={facturaAnterior}>⬅️</button>
-          <button className='btn-nc' onClick={() => handleVerNC()} disabled={!facturaActual?.url_notacredito} >Ver NC</button>
+          <button className='btn-nc' onClick={() => handleVerNC()} disabled={!facturaActual?.url_notacredito && !facturaActual?.comentarios} >Ver NC</button>
           <button className='action-buttonaprobarfac' onClick={facturaSiguiente}>➡️</button>
         </div>
       </div>
