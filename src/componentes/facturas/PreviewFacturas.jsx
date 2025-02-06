@@ -125,7 +125,7 @@ const PreviewEscalas = () => {
   };
   const filteredFacturas = Array.isArray(facturas)
     ? facturas.filter((row) =>
-      row.numero && row.numero.toLowerCase().includes(searchTerm.toLowerCase())
+      row.numero && row.numero.toLowerCase().includes(searchTerm.toLowerCase()) || row.proveedor && row.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
     )
     : [];
 

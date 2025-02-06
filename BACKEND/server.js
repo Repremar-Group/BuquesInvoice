@@ -138,7 +138,7 @@ app.post('/api/insertardatosfactura', async (req, res) => {
   }
 
   // Verificar si al menos una de las URLs (factura o nota de crédito) está presente
-  if (!url_factura && !url_notacredito) {
+  if ((!url_factura && !url_notacredito) && url_factura != 'NaN') {
     return res.status(400).send("Error: Se debe proporcionar al menos una URL (factura o nota de crédito).");
   }
 
@@ -182,7 +182,7 @@ app.post('/api/insertardatosfactura', async (req, res) => {
     // Si hay algún error, hacer rollback de la transacción
     console.error("Error al insertar los datos:", err);
     await connectionBuques.rollback();
-    return res.status(500).send("Error al insertar los datos");
+    return res.status(500).send("Error al insertar los datos", err);
   } finally {
     // Liberar la conexión del pool
     connectionBuques.release();
@@ -398,8 +398,13 @@ app.get('/api/previewescalas', async (req, res) => {
 app.use(fileUpload());
 app.post('/api/Agregarfactura', async (req, res) => {
   // Verificar si se han recibido archivos (puede ser uno o ambos)
-  if (!req.files || (!req.files.fileFactura && !req.files.fileNC)) {
+  if ((!req.files || (!req.files.fileFactura && !req.files.fileNC) && !req.body.isPreAprobado)) {
+    console.log(req.body.isPreAprobado);
     return res.status(400).send('Se requiere al menos un archivo.');
+  }
+  console.log(req.body.isPreAprobado);
+  if (req.body.isPreAprobado) {
+    return res.status(200).json({ message: 'Pre aprobado' });
   }
 
   // Inicializar un objeto para almacenar las rutas de los archivos
@@ -498,7 +503,7 @@ app.get('/api/obtenerfacturas', async (req, res) => {
     LEFT JOIN itinerarios_prod.buques b ON e.id_buque = b.id
     LEFT JOIN itinerarios_prod.puertos p ON e.id_puerto = p.id
     LEFT JOIN itinerarios_prod.operadores o ON e.id_operador1 = o.id
-    WHERE e.id_operador1 = ?;
+    WHERE e.id_operador1 = ? AND f.url_factura != "NaN";
   `;
 
   try {
@@ -553,7 +558,7 @@ app.get('/api/obtenerfacturas2', async (req, res) => {
       SELECT idfacturas, numero, DATE(fecha) AS fecha, moneda, monto, escala_asociada, proveedor, 
              url_factura, url_notacredito, estado, comentarios
       FROM facturas
-      WHERE escala_asociada IN (?);
+      WHERE escala_asociada IN (?) AND url_factura != "NaN";
     `, [escalaNumeros]);
 
     console.log('Resultados de facturas:', facturas);
@@ -1207,7 +1212,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
         f.url_factura,
         f.url_notacredito
       FROM facturas f
-      WHERE f.gia = 0 AND f.estado = 'Aprobado' 
+      WHERE f.gia = 0 AND f.estado = 'Aprobado' AND f.url_factura != 'NaN'
       ORDER BY f.escala_asociada, f.fecha ASC;
     `;
 
@@ -1248,7 +1253,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
       return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
     }
     console.log('escalas', escalas);
-    
+
     console.log('escalasFlattened', escalas);
     // Crear un mapa para acceder a los datos de las escalas rápidamente
     const escalasMap = escalas.reduce((acc, escala) => {
@@ -1310,7 +1315,7 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
           for (const page of facturaPages) {
             const { width, height } = page.getSize();
             page.drawText(
-              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
               {
                 x: width / 100, // Posición del watermark (ajustable)
                 y: height / 600, // Centro de la página
@@ -1415,10 +1420,10 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
       WHERE itinerarios.id IN (${escalaIds.join(',')});
     `;
 
-      const escalas = await queryPromise(queryEscalas, poolItinerarios);
-      if (escalas.length === 0) {
-        return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
-      }
+    const escalas = await queryPromise(queryEscalas, poolItinerarios);
+    if (escalas.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron escalas relacionadas con las facturas.' });
+    }
 
 
     // Crear un mapa para acceder a los datos de las escalas rápidamente
@@ -1483,7 +1488,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           for (const page of facturaPages) {
             const { width, height } = page.getSize();
             page.drawText(
-              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
               {
                 x: width / 100, // Posición del watermark (ajustable)
                 y: height / 600, // Centro de la página
@@ -1518,7 +1523,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           for (const page of notaPages) {
             const { width, height } = page.getSize();
             page.drawText(
-              `Buque: ${buque} | ETA: ${eta} | Puerto: ${puerto} | Operador: ${operador}`,
+              `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
               {
                 x: width / 100, // Posición del watermark (ajustable)
                 y: height / 600, // Centro de la página
