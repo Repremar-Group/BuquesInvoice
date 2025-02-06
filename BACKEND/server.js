@@ -28,7 +28,7 @@ const poolBuquesInvoice = mysql2.createPool({
   host: 'itinerarios.mysql.database.azure.com',
   user: 'itinerariosdba',
   password: '!Masterkey_22',
-  database: 'buquesinvoicedev',
+  database: 'buquesinvoice',
   port: 3306,
   waitForConnections: true,
   connectionLimit: 20, // Número máximo de conexiones en el pool
@@ -497,7 +497,7 @@ app.get('/api/obtenerfacturas', async (req, res) => {
       b.nombre AS buque,
       p.nombre AS puerto,
       o.nombre AS operador
-    FROM buquesinvoicedev.facturas f
+    FROM buquesinvoice.facturas f
     LEFT JOIN itinerarios_prod.itinerarios e ON f.escala_asociada = e.id
     LEFT JOIN itinerarios_prod.lineas l ON e.id_linea = l.id
     LEFT JOIN itinerarios_prod.buques b ON e.id_buque = b.id
@@ -1770,7 +1770,7 @@ JOIN itinerarios_prod.itinerarios i ON i.id = se.idescala  -- Relación entre se
 JOIN itinerarios_prod.buques b ON b.id = i.id_buque  -- Relación entre itinerarios y buques
 LEFT JOIN buquesinvoice.serviciosfacturas sf ON sf.idfactura IN (
   SELECT idfacturas 
-  FROM buquesinvoicedev.facturas f 
+  FROM buquesinvoice.facturas f 
   WHERE f.estado = 'Aprobado' AND f.escala_asociada = se.idescala
 )
 LEFT JOIN buquesinvoice.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
