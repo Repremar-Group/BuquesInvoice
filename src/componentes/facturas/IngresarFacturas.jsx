@@ -272,18 +272,17 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
       console.log(isPreAprobada);
       console.log('File Factura: ',selectedFileFactura, ' FileNC: ', selectedFileNC);
-      if (!isPreAprobada && (selectedFileFactura !== null || selectedFileNC !== null)) {
-        const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+      const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-        console.log("Factura subida exitosamente:", fileResponse.data);
+      console.log("Factura subida exitosamente:", fileResponse.data);
 
-        const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
-        const ncUrl = fileResponse.data.files?.fileNCUrl || '';
-      }
+      const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
+      const ncUrl = fileResponse.data.files?.fileNCUrl || '';
+      
       // Segundo paso: Guardar datos de la factura
       const facturaData = {
         numero: nrofactura,
