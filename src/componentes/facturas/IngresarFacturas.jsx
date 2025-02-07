@@ -271,6 +271,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
       formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
       console.log(isPreAprobada);
+      console.log('File Factura: ',selectedFileFactura, ' FileNC: ', selectedFileNC);
       if (!isPreAprobada && (selectedFileFactura !== null || selectedFileNC !== null)) {
         const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
           headers: {
