@@ -31,7 +31,11 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
   const [serviciomodal, setServicioModal] = useState('');
   const [isServiciosVisible, setIsServiciosVisible] = useState(false);
+  const [controlServicios, setControlServicios] = useState(false);
   const fetchServicios = async () => {
+    
+    if (!controlServicios) {
+      setControlServicios(true);
     try {
       console.log(escalasociadaid);
       const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
@@ -41,6 +45,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       if (response.data.length === 0) {
         console.log("La lista de servicios está vacía.");
         booleanoServicios = false;
+        
       } else {
         console.log("La lista de servicios contiene datos.");
         setServiciosLista(response.data);
@@ -53,7 +58,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
         const fetchServiciosPuerto = async () => {
           try {
-            console.log('Segundo log', selectedEscalaPuerto); // Verificar el puerto
+            console.log('Puerto (1-MVD, 4-PDE):', selectedEscalaPuerto); // Verificar el puerto
             const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${selectedEscalaPuerto}`);
 
             // Transformar el listado para solo tener 'nombre' y 'idescala'
@@ -69,6 +74,8 @@ const IngresarFacturas = ({ isLoggedIn }) => {
             const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
               servicios: serviciosTransformados
             })
+            console.log('servicios cargados');
+            setServiciosLista(serviciosTransformados);
 
           } catch (error) {
             console.error('Error al obtener servicios puertos:', error);
@@ -79,17 +86,18 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     } catch (error) {
       console.error('Error al obtener vuelos:', error);
     }
+  } else return;
   };
 
 
   const handleOpenSelect = async () => {
-
+    
     await fetchServicios(); // Espera que se complete la carga de servicios
-
   };
+
   const handleServicioChange = (e) => {
     setNuevoServicio({ ...nuevoServicio, nombre: e.target.value });
-    console.log('este es l nuevo servicio', nuevoServicio)
+    console.log('este es el nuevo servicio', nuevoServicio)
   };
 
   //Estados para la busqeuda de proveedores
@@ -159,7 +167,8 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     setSearchTermEscalaAsociada(escala.buque + ", ETA: " + escala.eta); // Muestra el nombre seleccionado en el input
     setEscalaAsociadaId(escala.id);
     setIsModalOpenEscala(false); // Cierra el modal
-
+    setControlServicios(false);
+    setServiciosLista([]);
   };
 
 
@@ -271,7 +280,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
       formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
       console.log(isPreAprobada);
-      console.log('File Factura: ',selectedFileFactura, ' FileNC: ', selectedFileNC);
+      console.log('File Factura: ', selectedFileFactura, ' FileNC: ', selectedFileNC);
       const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -282,7 +291,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
 
       const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
       const ncUrl = fileResponse.data.files?.fileNCUrl || '';
-      
+
       // Segundo paso: Guardar datos de la factura
       const facturaData = {
         numero: nrofactura,
@@ -343,7 +352,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       setSelectedFileFactura(null);
       setSelectedFileNC(null);
       setServiciosLista([]);
-
+      setControlServicios(false);
       setLoading(false); // Ocultar spinner cuando termine el proceso
     }
   };

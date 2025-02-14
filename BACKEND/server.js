@@ -69,15 +69,15 @@ const monitorPool = (pool, name) => {
 };
 
 // Monitorear ambos pools
-monitorPool(poolBuquesInvoice, 'BuquesInvoice');
+monitorPool(poolBuquesInvoice, 'buquesinvoice');
 monitorPool(poolItinerarios, 'Itinerarios');
 // Monitorear conexiones activas y liberadas
 poolBuquesInvoice.on('acquire', (connection) => {
-  console.log('Conexión adquirida para BuquesInvoice:', connection.threadId);
+  console.log('Conexión adquirida para buquesinvoice:', connection.threadId);
 });
 
 poolBuquesInvoice.on('release', (connection) => {
-  console.log('Conexión liberada de BuquesInvoice:', connection.threadId);
+  console.log('Conexión liberada de buquesinvoice:', connection.threadId);
 });
 
 poolItinerarios.on('acquire', (connection) => {
