@@ -132,7 +132,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   // Cerrar modal
   const closeModalProveedor = () => setIsModalOpenProveedor(false);
 
-
+  //prueba 1
   // Estado para la búsqueda de escalas
   const [searchTermEscalaAsociada, setSearchTermEscalaAsociada] = useState('');
   const [filteredEscalas, setFilteredEscalas] = useState([]);
