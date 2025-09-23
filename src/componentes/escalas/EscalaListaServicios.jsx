@@ -3,6 +3,7 @@ import axios from 'axios';
 import ReactPaginate from 'react-paginate';
 import './previewescalas.css';
 import { environment } from '../../environment';
+import '../../app.css';
 
 const EscalaListaServicios = ({ id, closeModal }) => {
 
@@ -99,31 +100,32 @@ const EscalaListaServicios = ({ id, closeModal }) => {
             <button type='submit' className="add-button">➕</button>
           </div>
         </form>
+        <div className='contenedor-tabla-app'>
+          <table className='tabla-app'>
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {serviciosmodal.map((row) => {
+                const isFacturaServicio = serviciosfacturas.includes(row.nombre);
 
-        <table className='tabla-parametros'>
-          <thead>
-            <tr>
-              <th>Servicio</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {serviciosmodal.map((row) => {
-              const isFacturaServicio = serviciosfacturas.includes(row.nombre);
-
-              return (
-                <tr key={row.idservicio} className={isFacturaServicio ? 'disabled-row' : ''}>
-                  <td>{row.nombre}</td>
-                  <td>
-                    {!isFacturaServicio && (
-                      <button className="action-button" onClick={() => handleEliminarServicio(row.idservicio)}>❌</button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr key={row.idservicio} className={isFacturaServicio ? 'disabled-row' : ''}>
+                    <td>{row.nombre}</td>
+                    <td>
+                      {!isFacturaServicio && (
+                        <button className="action-button" onClick={() => handleEliminarServicio(row.idservicio)}>❌</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
       </div>
     </div>

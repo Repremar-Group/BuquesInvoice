@@ -7,6 +7,7 @@ import ModalBusquedaProveedores from '../modales/ModalBusquedaProveedores';
 import { toast, ToastContainer } from 'react-toastify';
 import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
+import Select from "react-select";
 
 const IngresarFacturas = ({ isLoggedIn }) => {
   const navigate = useNavigate();
@@ -32,66 +33,66 @@ const IngresarFacturas = ({ isLoggedIn }) => {
   const [serviciomodal, setServicioModal] = useState('');
   const [isServiciosVisible, setIsServiciosVisible] = useState(false);
   const [controlServicios, setControlServicios] = useState(false);
+
   const fetchServicios = async () => {
-    
     if (!controlServicios) {
       setControlServicios(true);
-    try {
-      console.log(escalasociadaid);
-      const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
-      console.log('Tamaño de datos: ', response.data.length);
-      let booleanoServicios;
-      console.log(response.data);
-      if (response.data.length === 0) {
-        console.log("La lista de servicios está vacía.");
-        booleanoServicios = false;
-        
-      } else {
-        console.log("La lista de servicios contiene datos.");
-        setServiciosLista(response.data);
-        booleanoServicios = true;
-      }
-      // Se chequea que la escala tenga o no tenga servicios para agregarlos todos
-      console.log('ID de la escala seleccionada:', escalasociadaid);
-      console.log('isFetchedSvicios: ', booleanoServicios);
-      if (!booleanoServicios) {
+      try {
+        console.log(escalasociadaid);
+        const response = await axios.get(`${environment.API_URL}obtenerserviciosescala?escalaId=${escalasociadaid}`);
+        console.log('Tamaño de datos: ', response.data.length);
+        let booleanoServicios;
+        console.log(response.data);
+        if (response.data.length === 0) {
+          console.log("La lista de servicios está vacía.");
+          booleanoServicios = false;
 
-        const fetchServiciosPuerto = async () => {
-          try {
-            console.log('Puerto (1-MVD, 4-PDE):', selectedEscalaPuerto); // Verificar el puerto
-            const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${selectedEscalaPuerto}`);
+        } else {
+          console.log("La lista de servicios contiene datos.");
+          setServiciosLista(response.data);
+          booleanoServicios = true;
+        }
+        // Se chequea que la escala tenga o no tenga servicios para agregarlos todos
+        console.log('ID de la escala seleccionada:', escalasociadaid);
+        console.log('isFetchedSvicios: ', booleanoServicios);
+        if (!booleanoServicios) {
 
-            // Transformar el listado para solo tener 'nombre' y 'idescala'
-            const serviciosTransformados = response.data.map(servicio => ({
-              nombre: servicio.nombre,
-              idescala: escalasociadaid  // idescala es igual a escala.id
-            }));
-            console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
-            console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
+          const fetchServiciosPuerto = async () => {
+            try {
+              console.log('Puerto (1-MVD, 4-PDE):', selectedEscalaPuerto); // Verificar el puerto
+              const response = await axios.get(`${environment.API_URL}obtenerserviciospuertos/${selectedEscalaPuerto}`);
 
-            console.log('Datos enviados al servidor:', serviciosTransformados);
-            // Cambiar el formato enviado al servidor
-            const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
-              servicios: serviciosTransformados
-            })
-            console.log('servicios cargados');
-            setServiciosLista(serviciosTransformados);
+              // Transformar el listado para solo tener 'nombre' y 'idescala'
+              const serviciosTransformados = response.data.map(servicio => ({
+                nombre: servicio.nombre,
+                idescala: escalasociadaid  // idescala es igual a escala.id
+              }));
+              console.log('lista modificada', serviciosTransformados);  // Ver el listado transformado
+              console.log('lista sin modificar', response.data); // Ver los datos originales que trae la API
 
-          } catch (error) {
-            console.error('Error al obtener servicios puertos:', error);
-          }
+              console.log('Datos enviados al servidor:', serviciosTransformados);
+              // Cambiar el formato enviado al servidor
+              const response2 = await axios.post(`${environment.API_URL}insertserviciospuertos`, {
+                servicios: serviciosTransformados
+              })
+              console.log('servicios cargados');
+              setServiciosLista(serviciosTransformados);
+
+            } catch (error) {
+              console.error('Error al obtener servicios puertos:', error);
+            }
+          };
+          fetchServiciosPuerto();
         };
-        fetchServiciosPuerto();
-      };
-    } catch (error) {
-      console.error('Error al obtener vuelos:', error);
-    }
-  } else return;
+      } catch (error) {
+        console.error('Error al obtener vuelos:', error);
+      }
+    } else return;
   };
 
 
   const handleOpenSelect = async () => {
-    
+
     await fetchServicios(); // Espera que se complete la carga de servicios
   };
 
@@ -275,71 +276,114 @@ const IngresarFacturas = ({ isLoggedIn }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Primer paso: Subir los archivos
-      const formData = new FormData();
-      formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
-      formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
-      console.log(isPreAprobada);
-      console.log('File Factura: ', selectedFileFactura, ' FileNC: ', selectedFileNC);
-      const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      console.log("Factura subida exitosamente:", fileResponse.data);
-
-      const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
-      const ncUrl = fileResponse.data.files?.fileNCUrl || '';
-
-      // Segundo paso: Guardar datos de la factura
-      const facturaData = {
-        numero: nrofactura,
-        fecha: fecha,
-        moneda: moneda,
-        monto: monto,
-        escala_asociada: escalasociadaid,
-        proveedor: selectedProveedor,
-        url_factura: facturaUrl,
-        url_notacredito: ncUrl,
-        gia: 0,
-        servicios: servicios,
-      };
-
-      if (isPreAprobada) {
-        // Si está pre-aprobada, agregamos "Aprobado" y "pre_aprobado: 1"
-        facturaData.estado = "Aprobado";
-        facturaData.pre_aprobado = 1;
-        if (selectedFileFactura == null && selectedFileNC == null) {
-          facturaData.url_factura = "NaN";
-          facturaData.url_notacredito = "NaN";
-          facturaData.gia = 1;
-        }
-        //aca recorro servicios y les cambio el estado a aprobado
-
-
+      //consulto el rol para ver si es jeanette & si esta vacio el PDF igual permito subir la factura.
+      const rol = localStorage.getItem('rol')
+      console.log(rol);
+      if (rol === 'liquidacion' && selectedFileFactura === null) {
+        console.log('Factura de Liquicion');
+        const facturaUrl = `${environment.PDF_NULL}`;
+        const ncUrl = '';
+        // Segundo paso: Guardar datos de la factura
+        const facturaData = {
+          numero: nrofactura,
+          fecha: fecha,
+          moneda: moneda,
+          monto: monto,
+          escala_asociada: escalasociadaid,
+          proveedor: selectedProveedor,
+          url_factura: facturaUrl,
+          url_notacredito: ncUrl,
+          gia: 1,
+          estado: 'Aprobado',
+          pre_aprobado: 1,
+          servicios: servicios,
+        };
         // Recorrer los servicios y cambiar su estado a "Aprobado"
         const serviciosAprobados = servicios.map(servicio => ({
           ...servicio,
           estado: 'Aprobado'  // Cambiar el estado a "Aprobado"
         }));
-
         // Actualizar el array de servicios con los nuevos estados
         facturaData.servicios = serviciosAprobados;
-      } else {
-        // Si no está pre-aprobada, agregamos "Pendiente" y "pre_aprobado: 0"
-        facturaData.estado = "Pendiente";
-        facturaData.pre_aprobado = 0;
-      };
-      console.log(facturaData);
-      const facturaResponse = await axios.post(`${environment.API_URL}insertardatosfactura`, facturaData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        console.log(facturaData);
+        const facturaResponse = await axios.post(`${environment.API_URL}insertardatosfactura`, facturaData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      toast.success("Factura ingresada exitosamente");
+        toast.success("Factura ingresada exitosamente");
+
+
+      } else {
+        console.log('Factura normal');
+        // Primer paso: Subir los archivos
+        const formData = new FormData();
+        formData.append("fileFactura", selectedFileFactura); // 'fileFactura' debe coincidir con el backend
+        formData.append("fileNC", selectedFileNC); // 'fileNC' debe coincidir con el backend
+        console.log(isPreAprobada);
+        console.log('File Factura: ', selectedFileFactura, ' FileNC: ', selectedFileNC);
+        const fileResponse = await axios.post(`${environment.API_URL}Agregarfactura`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        console.log("Factura subida exitosamente:", fileResponse.data);
+
+        const facturaUrl = fileResponse.data.files?.fileFacturaUrl || '';
+        const ncUrl = fileResponse.data.files?.fileNCUrl || '';
+
+        // Segundo paso: Guardar datos de la factura
+        const facturaData = {
+          numero: nrofactura,
+          fecha: fecha,
+          moneda: moneda,
+          monto: monto,
+          escala_asociada: escalasociadaid,
+          proveedor: selectedProveedor,
+          url_factura: facturaUrl,
+          url_notacredito: ncUrl,
+          gia: 0,
+          servicios: servicios,
+        };
+
+        if (isPreAprobada) {
+          // Si está pre-aprobada, agregamos "Aprobado" y "pre_aprobado: 1"
+          facturaData.estado = "Aprobado";
+          facturaData.pre_aprobado = 1;
+          if (selectedFileFactura == null && selectedFileNC == null) {
+            facturaData.url_factura = "NaN";
+            facturaData.url_notacredito = "NaN";
+            facturaData.gia = 1;
+          }
+          //aca recorro servicios y les cambio el estado a aprobado
+
+
+          // Recorrer los servicios y cambiar su estado a "Aprobado"
+          const serviciosAprobados = servicios.map(servicio => ({
+            ...servicio,
+            estado: 'Aprobado'  // Cambiar el estado a "Aprobado"
+          }));
+
+          // Actualizar el array de servicios con los nuevos estados
+          facturaData.servicios = serviciosAprobados;
+        } else {
+          // Si no está pre-aprobada, agregamos "Pendiente" y "pre_aprobado: 0"
+          facturaData.estado = "Pendiente";
+          facturaData.pre_aprobado = 0;
+        };
+        console.log(facturaData);
+        const facturaResponse = await axios.post(`${environment.API_URL}insertardatosfactura`, facturaData, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        toast.success("Factura ingresada exitosamente");
+      }
     } catch (error) {
+      console.log(selectedFileFactura);
       toast.error("Error durante el proceso");
 
     } finally {
@@ -347,7 +391,7 @@ const IngresarFacturas = ({ isLoggedIn }) => {
       setFecha('');
       setMoneda('');
       setMonto('');
-      setSearchTermProveedor('');
+      //setSearchTermProveedor('');  //Se comenta para que mantenga proveedor
       setServicios([]);
       setSelectedFileFactura(null);
       setSelectedFileNC(null);
@@ -426,17 +470,13 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                   autoComplete='off'
                 />
               </div>
-              <div>
-                <label htmlFor="proveedor">Proveedor:</label>
-                <input
-                  type="text"
+              <div> <label htmlFor="proveedor">Proveedor:</label>
+                <input type="text"
                   value={searchTermProveedor}
                   onChange={handleInputChangeProveedor}
                   onKeyPress={handleKeyPressProveedor}
                   placeholder="Buscar Proveedor"
-                  autoComplete='off'
-                />
-              </div>
+                  autoComplete='off' /> </div>
               <div>
                 <label htmlFor="fmmoneda">Moneda:</label>
                 <select
@@ -482,8 +522,8 @@ const IngresarFacturas = ({ isLoggedIn }) => {
                   onChange={handleFileChangeNC}
                 />
               </div>
-              <div></div>
-
+              <div>
+              </div>
             </div>
             <h3 className='subtitulo-estandar'>Servicios Asociados</h3>
             <div className='div-renglon-datos-facturasmanuales'>
@@ -574,7 +614,6 @@ const IngresarFacturas = ({ isLoggedIn }) => {
         filteredEscalas={filteredEscalas}
         handleSelectEscala={handleSelectEscala}
       />
-
       <ModalBusquedaProveedores
         isOpen={isModalOpenProveedor}
         closeModal={closeModalProveedor}

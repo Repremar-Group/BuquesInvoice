@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import axios from 'axios'; // Importa axios para hacer la solicitud HTTP
 import EscalaListaServicios from './EscalaListaServicios';
 import { environment } from '../../environment';
+import '../../app.css';
 
 const PreviewEscalas = ({ isLoggedIn }) => {
   // Estado para el modal
@@ -122,8 +123,8 @@ const PreviewEscalas = ({ isLoggedIn }) => {
             onChange={handleSearch}
           />
         </div>
-        <div className="contenedor-tabla-viewescala">
-          <table className='tabla-escalas'>
+        <div className="contenedor-tabla-app">
+          <table className='tabla-app'>
             <thead>
               <tr>
                 <th>Id</th>

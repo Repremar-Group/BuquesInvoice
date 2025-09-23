@@ -13,7 +13,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 
 //Constantes para manejar las caratulas con pdflib
-const { PDFDocument, rgb, degrees } = require('pdf-lib');
+const { PDFDocument, rgb, degrees, StandardFonts } = require('pdf-lib');
 const fs = require('fs');
 
 const app = express();
@@ -337,7 +337,10 @@ LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
 LEFT JOIN buques ON itinerarios.id_buque = buques.id
 LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
 LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+JOIN buquesinvoice.parametros p ON p.idparametros = 1
+    WHERE itinerarios.eta BETWEEN
+      STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
+      AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
   AND buques.nombre LIKE ?  -- Filtro por buque usando el término de búsqueda
   AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
 ORDER BY itinerarios.eta DESC;
@@ -379,9 +382,11 @@ app.get('/api/previewescalas', async (req, res) => {
     LEFT JOIN buques ON itinerarios.id_buque = buques.id
     LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
     LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-    WHERE itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-      AND itinerarios.eta >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
-      AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
+    JOIN buquesinvoice.parametros p ON p.idparametros = 1
+    WHERE itinerarios.eta BETWEEN
+      STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
+      AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
+    AND (itinerarios.id_puerto = 1 OR itinerarios.id_puerto = 4)
     ORDER BY itinerarios.eta DESC
   `;
   try {
@@ -587,6 +592,38 @@ app.put('/api/facturas/:idfactura/agregarcomentario', async (req, res) => {
   } catch (error) {
     console.error('Error al guardar el comentario:', error);
     res.status(500).json({ message: 'Error al guardar el comentario.' });
+  }
+});
+
+// Endpoint para actualizar el año de la temporada
+app.put('/api/actualizaraniotemporada', async (req, res) => {
+  const { anio } = req.body;
+
+  try {
+    const query = 'UPDATE parametros SET fecha_temporada = ? WHERE idparametros = 1';
+    await poolBuquesInvoice.query(query, [anio]);
+
+    res.status(200).json({ message: 'Año de temporada actualizado correctamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el año de la temporada:', error);
+    res.status(500).json({ message: 'Error al actualizar el año de la temporada.' });
+  }
+});
+
+// Endpoint para obtener el año de la temporada
+app.get('/api/obteneraniotemporada', async (req, res) => {
+  try {
+    const query = 'SELECT fecha_temporada AS anio FROM parametros WHERE idparametros = 1';
+    const [rows] = await poolBuquesInvoice.query(query);
+
+    if (rows.length > 0) {
+      res.status(200).json({ anio: rows[0].anio });
+    } else {
+      res.status(404).json({ message: 'No se encontró el año de temporada.' });
+    }
+  } catch (error) {
+    console.error('Error al obtener el año de la temporada:', error);
+    res.status(500).json({ message: 'Error al obtener el año de la temporada.' });
   }
 });
 
@@ -1035,6 +1072,101 @@ app.get('/api/viewescalafacturas/:id', async (req, res) => {
   }
 });
 
+app.get('/api/viewescalaarchivos/:id', async (req, res) => {
+  const escalaId = req.params.id;
+  console.log(`Escala ID recibido para archivos: ${escalaId}`);
+
+  if (!escalaId) {
+    return res.status(400).json({ error: 'ID de escala no proporcionado' });
+  }
+
+  const query = `
+    SELECT 
+      idarchivosescalas, 
+      escalaid, 
+      tipo, 
+      url,
+      notas,
+      usuario,
+      fecha
+    FROM archivosescalas 
+    WHERE escalaid = ?;
+  `;
+
+  try {
+    const connection = await poolBuquesInvoice.getConnection(); // Reutiliza tu pool
+    const [results] = await connection.query(query, [escalaId]);
+    connection.release();
+
+    if (results.length === 0) {
+      return res.json([]);
+    }
+
+    console.log('Archivos encontrados:', results);
+    res.json(results);
+
+  } catch (err) {
+    console.error('Error al consultar archivos:', err);
+    return res.status(500).json({ error: 'Error interno del servidor al consultar los archivos' });
+  }
+});
+
+app.post('/api/uploadescalaarchivo', async (req, res) => {
+  console.log("Datos recibidos:", req.body);  // Verificar los datos que llegan
+  const { tipoarchivo, notasarchivo, escalaarchivo, usuarioarchivo, fechaarchivo } = req.body;
+  if (!req.files || !req.files.file || !tipoarchivo || !escalaarchivo || !usuarioarchivo || !fechaarchivo) {
+    return res.status(400).json({ message: 'Faltan datos requeridos o archivo.' });
+  }
+  const archivo = req.files.file;
+  const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+  const containerName = 'invoices'; // Replace with your container name
+  const blobName = req.files.file.name; // Use original file name
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  const contentType = archivo.mimetype; // Get MIME type from the uploaded file
+
+  const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+  console.log(req.files.file);
+
+  // Upload file to Azure Blob Storage
+  await blockBlobClient.upload(req.files.file.data, req.files.file.data.length, {
+    blobHTTPHeaders: {
+      blobContentType: contentType,
+    },
+  });
+  const urlArchivo = `https://buquesinvoicestorage.blob.core.windows.net/invoices/${archivo.name}`;
+
+  // Obtener la conexión del pool de buquesinvoice
+  const connectionBuques = await poolBuquesInvoice.getConnection();
+  try {
+    await connectionBuques.beginTransaction();
+
+    const sqlArchivo = `
+    INSERT INTO archivosescalas 
+    (escalaid, tipo, url, notas, usuario, fecha) 
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+    const valuesArchivo = [escalaarchivo, tipoarchivo, urlArchivo, notasarchivo, usuarioarchivo, fechaarchivo];
+    const [resultArchivo] = await connectionBuques.query(sqlArchivo, valuesArchivo);
+    const archivoid = resultArchivo.insertId;
+
+    console.log("Archivo insertado: ", archivoid);
+    await connectionBuques.commit();
+
+    return res.json({
+      message: "Archivo adjunto ingresado con éxito",
+      file: urlArchivo
+    });
+
+  } catch (err) {
+    console.error("Error al insertar los datos:", err);
+    await connectionBuques.rollback();
+    return res.status(500).send("Error al insertar los datos");
+  } finally {
+    connectionBuques.release();
+  }
+
+});
+
 app.get('/api/obtenerserviciospuertos/:puertos', async (req, res) => {
   const puertoId = req.params.puertos;
   console.log('Puerto ID recibido:', puertoId); // Asegúrate de que se imprime el valor correcto
@@ -1276,24 +1408,13 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
 
     // Crear un documento PDF (pdf-lib)
     const pdfDocSinNC = await PDFDocument.create();
-    const font = pdfDocSinNC.embedStandardFont('Helvetica');
+    const font = pdfDocSinNC.embedStandardFont(StandardFonts.Helvetica);
 
     // Recorrer las escalas y generar las páginas del PDF, (cada iteracion obtiene una escala y sus facturas)
     for (const escalaData of Object.values(escalasConFacturas)) {
       const escala = escalaData.escala;
       const facturas = escalaData.facturas;
 
-      // Agregar una página para la carátula de la escala
-      const pageConNC = pdfDocSinNC.addPage();
-      const { width, height } = pageConNC.getSize();
-
-      pageConNC.drawText(`${escala.buque} ${escala.eta}`, {
-        x: width / 2 - 100, y: height - 50, size: 18, font, color: rgb(0, 0, 0)
-      });
-      pageConNC.drawText(`Buque: ${escala.buque}`, { x: 50, y: height - 100, size: 14, font });
-      pageConNC.drawText(`ETA: ${escala.eta}`, { x: 50, y: height - 120, size: 14, font });
-      pageConNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
-      pageConNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
       // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
       const facturasProcesadas = [];
       // Agregar facturas y notas de crédito al PDF (Recorre cada factura y agrega factura y nota de credito)
@@ -1305,14 +1426,18 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
 
           // Crear una nueva fuente estándar para el watermark
-          const fontWatermark = await pdfDocSinNC.embedFont('Helvetica');
+          const fontWatermark = await pdfDocSinNC.embedFont(StandardFonts.Helvetica);
 
-          // Obtener las páginas del PDF de factura
-          const facturaPages = facturaPdfDoc.getPages();
           const { buque, eta, puerto, operador } = escala; // Datos de la escala
 
+          // Copiar las páginas del PDF de factura al documento principal
+          const facturaPdfPages = await pdfDocSinNC.copyPages(
+            facturaPdfDoc,
+            facturaPdfDoc.getPageIndices()
+          );
+
           // Agregar watermark en cada página del PDF de factura
-          for (const page of facturaPages) {
+          for (const page of facturaPdfPages) {
             const { width, height } = page.getSize();
             page.drawText(
               `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
@@ -1329,7 +1454,6 @@ app.get('/api/exportarpdfsinnotas', async (req, res) => {
           }
 
           // Copiar las páginas modificadas con el watermark al documento principal
-          const facturaPdfPages = await pdfDocSinNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
           facturaPdfPages.forEach(page => pdfDocSinNC.addPage(page));
 
           // Guardar el ID de la factura para actualizar después
@@ -1447,7 +1571,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
 
     // Crear el pdf
     const pdfDocConNC = await PDFDocument.create();
-    const font = pdfDocConNC.embedStandardFont('Helvetica');
+    const font = pdfDocConNC.embedStandardFont(StandardFonts.Helvetica);
 
     // Array para guardar los id de las facturas procesadas y poder identificar las que se imprimieron
     const facturasProcesadas = [];
@@ -1456,18 +1580,6 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
     for (const escalaData of Object.values(escalasConFacturas)) {
       const escala = escalaData.escala;
       const facturas = escalaData.facturas;
-
-      // Agregar una página para la carátula de la escala
-      const pageSinNC = pdfDocConNC.addPage();
-      const { width, height } = pageSinNC.getSize();
-
-      pageSinNC.drawText(`${escala.buque} ${escala.eta}`, {
-        x: width / 2 - 100, y: height - 50, size: 18, font, color: rgb(0, 0, 0)
-      });
-      pageSinNC.drawText(`Buque: ${escala.buque}`, { x: 50, y: height - 100, size: 14, font });
-      pageSinNC.drawText(`ETA: ${escala.eta}`, { x: 50, y: height - 120, size: 14, font });
-      pageSinNC.drawText(`Puerto: ${escala.puerto}`, { x: 50, y: height - 140, size: 14, font });
-      pageSinNC.drawText(`Operador: ${escala.operador}`, { x: 50, y: height - 160, size: 14, font });
 
       // Agregar únicamente las facturas al PDF
       for (const factura of facturas) {
@@ -1478,14 +1590,19 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           const facturaPdfDoc = await PDFDocument.load(facturaPdfBytes);
 
           // Crear una nueva fuente estándar para el watermark
-          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+          const fontWatermark = await pdfDocConNC.embedFont(StandardFonts.Helvetica);
 
-          // Obtener las páginas del PDF de factura
-          const facturaPages = facturaPdfDoc.getPages();
+
           const { buque, eta, puerto, operador } = escala; // Datos de la escala
 
+          // Copiar las páginas del PDF de factura al documento principal
+          const facturaPdfPages = await pdfDocConNC.copyPages(
+            facturaPdfDoc,
+            facturaPdfDoc.getPageIndices()
+          );
+
           // Agregar watermark en cada página del PDF de factura
-          for (const page of facturaPages) {
+          for (const page of facturaPdfPages) {
             const { width, height } = page.getSize();
             page.drawText(
               `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
@@ -1502,7 +1619,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           }
 
           // Copiar las páginas modificadas con el watermark al documento principal
-          const facturaPdfPages = await pdfDocConNC.copyPages(facturaPdfDoc, facturaPdfDoc.getPageIndices());
+
           facturaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
 
@@ -1513,14 +1630,18 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           const notaPdfDoc = await PDFDocument.load(notaPdfBytes);
 
           // Crear una nueva fuente estándar para el watermark
-          const fontWatermark = await pdfDocConNC.embedFont('Helvetica');
+          const fontWatermark = await pdfDocConNC.embedFont(StandardFonts.Helvetica);
 
           // Obtener las páginas del PDF de factura
-          const notaPages = notaPdfDoc.getPages();
           const { buque, eta, puerto, operador } = escala; // Datos de la escala
+          // Copiar las páginas del PDF de factura al documento principal
+          const notaPdfPages = await pdfDocConNC.copyPages(
+            notaPdfDoc,
+            notaPdfDoc.getPageIndices()
+          );
 
           // Agregar watermark en cada página del PDF de factura
-          for (const page of notaPages) {
+          for (const page of notaPdfPages) {
             const { width, height } = page.getSize();
             page.drawText(
               `${buque} | ETA: ${eta} | ${puerto} | ${operador}`,
@@ -1537,7 +1658,7 @@ app.get('/api/exportarpdfconnotas', async (req, res) => {
           }
 
           // Copiar todas las páginas del documento de nota de crédito
-          const notaPdfPages = await pdfDocConNC.copyPages(notaPdfDoc, notaPdfDoc.getPageIndices());
+
           notaPdfPages.forEach(page => pdfDocConNC.addPage(page));
         }
 

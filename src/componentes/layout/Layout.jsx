@@ -15,6 +15,7 @@ import ParametrosServicios from '../parametros/ParametrosServicios';
 import ParametrosPuertos from '../parametros/ParametrosPuertos';
 import RutaNoEncontrada from '../modales/RutaNoEncontrada';
 import IngresarFacturasMultipleEscala from '../facturas/IngresarFacturasMultipleEscala';
+import ParametrosTemporada from '../parametros/ParametrosTemporada';
 
 function Layout({ isLoggedIn, handleLogin }) {
     const location = useLocation();
@@ -173,6 +174,16 @@ function Layout({ isLoggedIn, handleLogin }) {
                     element={
                         isLoggedIn ? (
                             <ParametrosPuertos isLoggedIn={isLoggedIn} />
+                        ) : (
+                            <Navigate to="/login" />
+                        )
+                    }
+                />
+                <Route
+                    path="/parametros/temporada"
+                    element={
+                        isLoggedIn ? (
+                            <ParametrosTemporada isLoggedIn={isLoggedIn} />
                         ) : (
                             <Navigate to="/login" />
                         )

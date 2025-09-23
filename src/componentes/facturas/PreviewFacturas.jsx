@@ -7,6 +7,7 @@ import ModificarFactura from './ModificarFactura';
 import { toast, ToastContainer } from 'react-toastify';
 import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
+import '../../app.css';
 
 const PreviewEscalas = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,16 +50,16 @@ const PreviewEscalas = () => {
   const handleDownloadPDF = async () => {
     setLoading(true);
     setErrorpdf(null);
- 
+
     try {
       let primeraConsultaExitosa = false;
- 
+
       // Realizar la primera solicitud (facturas con notas de crédito)
       try {
         const responseWithNC = await axios.get(`${environment.API_URL}exportarpdfsinnotas`, {
           responseType: 'blob',
         });
- 
+
         // Descargar el primer archivo
         const urlWithNC = window.URL.createObjectURL(responseWithNC.data);
         const linkWithNC = document.createElement('a');
@@ -68,18 +69,18 @@ const PreviewEscalas = () => {
         linkWithNC.click();
         linkWithNC.parentNode.removeChild(linkWithNC);
         window.URL.revokeObjectURL(urlWithNC);
- 
+
         primeraConsultaExitosa = true; // Marcar como exitosa
       } catch (err) {
         console.warn('La primera solicitud falló:', err);
       }
- 
+
       // Realizar la segunda solicitud (facturas sin notas de crédito)
       try {
         const responseWithoutNC = await axios.get(`${environment.API_URL}exportarpdfconnotas`, {
           responseType: 'blob',
         });
- 
+
         // Descargar el segundo archivo 1
         const urlWithoutNC = window.URL.createObjectURL(responseWithoutNC.data);
         const linkWithoutNC = document.createElement('a');
@@ -89,12 +90,12 @@ const PreviewEscalas = () => {
         linkWithoutNC.click();
         linkWithoutNC.parentNode.removeChild(linkWithoutNC);
         window.URL.revokeObjectURL(urlWithoutNC);
- 
+
         primeraConsultaExitosa = true; // Considerar la operación general exitosa
       } catch (err) {
         console.warn('La segunda solicitud falló:', err);
       }
- 
+
       if (!primeraConsultaExitosa) {
         // Si ambas consultas fallaron
         setErrorpdf('No existen facturas para imprimir o no se pudo generar el reporte.');
@@ -195,78 +196,84 @@ const PreviewEscalas = () => {
           </button>
         </div>
         {error && <div className="error">{error}</div>}
-        <table className='tabla-facturas'>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Numero</th>
-              <th>Fecha</th>
-              <th>Moneda</th>
-              <th>Monto</th>
-              <th>Escala Asociada</th>
-              <th>Proveedor</th>
-              <th>Estado</th>
-              <th>GIA</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFacturas.map((row) => (
-              <tr key={row.idfacturas}>
-                <td>{row.idfacturas}</td>
-                <td>{row.numero}</td>
-                <td>{row.fecha}</td>
-                <td>{row.moneda}</td>
-                <td>{row.monto}</td>
-                <td>{row.escala_asociada}</td>
-                <td>{row.proveedor}</td>
-                <td>{row.estado}</td>
-                <td>
-                  <input type="checkbox" checked={!!row.gia} disabled />
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <Link to={`/ViewFactura/${row.idfacturas}`}><button className="action-button">🔎</button></Link>
-                    <button className="action-button" onClick={() => handleModificar(row.idfacturas)}>✏️</button>
-                    <button className="action-button" onClick={() => handleEliminar(row.idfacturas, row.numero, row.monto)}>❌</button>
-                  </div>
-                </td>
+        <div className="contenedor-tabla-app">
+          <table className='tabla-app'>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Numero</th>
+                <th>Fecha</th>
+                <th>Moneda</th>
+                <th>Monto</th>
+                <th>Escala Asociada</th>
+                <th>Proveedor</th>
+                <th>Estado</th>
+                <th>GIA</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredFacturas.map((row) => (
+                <tr key={row.idfacturas}>
+                  <td>{row.idfacturas}</td>
+                  <td>{row.numero}</td>
+                  <td>{row.fecha}</td>
+                  <td>{row.moneda}</td>
+                  <td>{row.monto}</td>
+                  <td>{row.escala_asociada}</td>
+                  <td>{row.proveedor}</td>
+                  <td>{row.estado}</td>
+                  <td>
+                    <input type="checkbox" checked={!!row.gia} disabled />
+                  </td>
+                  <td>
+                    <div className="action-buttons">
+                      <Link to={`/ViewFactura/${row.idfacturas}`}><button className="action-button">🔎</button></Link>
+                      <button className="action-button" onClick={() => handleModificar(row.idfacturas)}>✏️</button>
+                      <button className="action-button" onClick={() => handleEliminar(row.idfacturas, row.numero, row.monto)}>❌</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
       </div>
 
       {/* Modal para eliminar factura */}
-      {idaeliminar && (
-        <>
-          <div className="modal-overlayeliminarfactura active" onClick={closeModalEliminar}>
-            <div className="modal-containereliminarfactura active">
-              <h2>¿Estás seguro de eliminar esta factura?</h2>
-              <p><strong>Factura:</strong> {numeroaeliminar}</p>
-              <p><strong>Monto:</strong> {montoaeliminar}</p>
-              <div className="modal-buttonseliminarfactura">
-                <button onClick={confirmEliminar}>Sí</button>
-                <button onClick={closeModalEliminar}>No</button>
+      {
+        idaeliminar && (
+          <>
+            <div className="modal-overlayeliminarfactura active" onClick={closeModalEliminar}>
+              <div className="modal-containereliminarfactura active">
+                <h2>¿Estás seguro de eliminar esta factura?</h2>
+                <p><strong>Factura:</strong> {numeroaeliminar}</p>
+                <p><strong>Monto:</strong> {montoaeliminar}</p>
+                <div className="modal-buttonseliminarfactura">
+                  <button onClick={confirmEliminar}>Sí</button>
+                  <button onClick={closeModalEliminar}>No</button>
+                </div>
               </div>
             </div>
-          </div>
 
-        </>
-      )}
+          </>
+        )
+      }
 
       {/* Modal para modificar Cliente */}
-      {idamodificar && (
-        <>
-          <div className="modal-overlay active" onClick={closeModalModificar}></div>
-          <div className="modal-container active">
-            <ModificarFactura closeModal={closeModalModificar} Id={idamodificar} />
-          </div>
-        </>
-      )}
+      {
+        idamodificar && (
+          <>
+            <div className="modal-overlay active" onClick={closeModalModificar}></div>
+            <div className="modal-container active">
+              <ModificarFactura closeModal={closeModalModificar} Id={idamodificar} />
+            </div>
+          </>
+        )
+      }
 
-    </div>
+    </div >
   );
 };
 

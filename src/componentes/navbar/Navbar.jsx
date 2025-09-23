@@ -37,6 +37,7 @@ const NavBar = () => {
                     <div className="submenu">
                         <Link to="/parametros/servicios" className="submenuItem">Servicios</Link>
                         <Link to="/parametros/puertos" className="submenuItem">Puertos</Link>
+                        <Link to="/parametros/temporada" className="submenuItem">Temporada</Link>
                     </div>
                 </div>
 

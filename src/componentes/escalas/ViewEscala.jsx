@@ -5,33 +5,36 @@ import { Link } from "react-router-dom";
 import axios from 'axios';
 import './previewescalas.css';
 import { environment } from '../../environment';
+import EscalaAdjuntos from './EscalaAdjuntos';
+import '../../app.css';
 
 
 // Componente para mostrar detalles generales de la escala
-const Facturas =({ facturas, searchTerm, handleSearch }) => {
-    // Filtrar las facturas que coincidan con el searchTerm
-    const filteredFacturas = facturas.filter((factura) => {
-      return (
-        factura.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        factura.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
-   
+const Facturas = ({ facturas, searchTerm, handleSearch }) => {
+  // Filtrar las facturas que coincidan con el searchTerm
+  const filteredFacturas = facturas.filter((factura) => {
     return (
-      <div className="view-escala-facturas">
-   
-        <div className="search-bar">
-          <input
-            className='input_buscar'
-            type="text"
-            placeholder="Buscar"
-            value={searchTerm}  // Usa el searchTerm pasado como prop
-            onChange={handleSearch}  // Usa el handleSearch pasado como prop
-          />
-        </div>
-   
-        {filteredFacturas && filteredFacturas.length > 0 ? (
-          <table className="tabla-viewescala">
+      factura.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      factura.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
+
+  return (
+    <div className="view-escala-facturas">
+
+      <div className="search-bar">
+        <input
+          className='input_buscar'
+          type="text"
+          placeholder="Buscar"
+          value={searchTerm}  // Usa el searchTerm pasado como prop
+          onChange={handleSearch}  // Usa el handleSearch pasado como prop
+        />
+      </div>
+
+      {filteredFacturas && filteredFacturas.length > 0 ? (
+        <div className='contenedor-tabla-app' style={{ maxHeight: "53vh", overflowY: "auto" }}>
+          <table className="tabla-app">
             <thead>
               <tr>
                 <th>Numero</th>
@@ -50,21 +53,97 @@ const Facturas =({ facturas, searchTerm, handleSearch }) => {
                   <td>{factura.moneda} {factura.monto}</td>
                   <td>{factura.proveedor}</td>
                   <td>
-                  <input type="checkbox" checked={!!factura.gia} disabled />
-                </td>
+                    <input type="checkbox" checked={!!factura.gia} disabled />
+                  </td>
                   <td>{factura.url_factura ? <a href={factura.url_factura} target="_blank" >📄</a> : '❌'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : (
-          <p>No se encontraron facturas para esta escala.</p>
-        )}
-        <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
-      </div>
-    );
+        </div>
+      ) : (
+        <p>No se encontraron facturas para esta escala.</p>
+      )}
+      <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
+    </div>
+  );
+};
+
+// Componente para mostrar detalles generales de la escala
+const Adjuntos = ({ adjuntos, searchTerm, handleSearch, id, fetchAdjuntos }) => {
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleAgregarAdjunto = (e) => {
+    setIsLoadingModal(true);
+    setIsLoadingModal(false);
+    setIsModalOpen(true);
   };
-   
+  const closeModalAdjuntos = () => {
+    setIsModalOpen(false);
+  };
+  // Filtrar las facturas que coincidan con el searchTerm
+  const filteredAdjuntos = adjuntos.filter((adjunto) => {
+    return (
+      adjunto.tipo.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
+
+  return (
+    <div className="view-escala-facturas">
+      <div className="search-bar">
+        <input
+          className='input_buscar'
+          type="text"
+          placeholder="Buscar"
+          value={searchTerm}  // Usa el searchTerm pasado como prop
+          onChange={handleSearch}  // Usa el handleSearch pasado como prop
+        />
+      </div>
+      <button className="add-button" onClick={handleAgregarAdjunto}>➕</button>
+
+      {filteredAdjuntos && filteredAdjuntos.length > 0 ? (
+        <div className='contenedor-tabla-app' style={{ maxHeight: "53vh", overflowY: "auto" }}>
+          <table className="tabla-app2">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Notas</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAdjuntos.map((adjunto) => (
+                <tr key={adjunto.idarchivosescala}>
+                  <td>{adjunto.tipo}</td>
+                  <td>{adjunto.notas}</td>
+                  <td>{adjunto.url ? <a href={adjunto.url} target="_blank" >📄</a> : '❌'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p>No se encontraron adjuntos para esta escala.</p>
+      )}
+      <Link to="/previewescalas"><button className="btn-estandar">Volver</button></Link>
+      {isLoadingModal && (
+        <div className="modal-overlay-spinner active">
+          <div className="loading-spinner"></div>
+        </div>
+      )}
+
+      {!isLoadingModal && isModalOpen && (
+        <div className="modal-overlay active" onClick={closeModalAdjuntos}>
+          <div className="modal-container active" onClick={(e) => e.stopPropagation()}>
+            <EscalaAdjuntos id={id} closeModal={closeModalAdjuntos} fetchAdjuntos={fetchAdjuntos} />
+          </div>
+        </div>
+      )}
+    </div>
+
+  );
+};
+
 
 // Componente para mostrar los servicios y facturas
 const Liquidacion = ({ servicios, searchTerm, handleSearch, escala }) => {
@@ -111,36 +190,38 @@ const Liquidacion = ({ servicios, searchTerm, handleSearch, escala }) => {
       </div>
 
       {filteredServicios && filteredServicios.length > 0 ? (
-        <table className="tabla-viewescala">
-          <thead>
-            <tr>
-              <th>Servicio</th>
-              <th>Estado Servicio</th>
-              <th>Factura</th>
-              <th>NroFactura</th>
-              <th>Estado Factura</th>
-              <th>PDF</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredServicios.map((servicio, index) => (
-              <tr key={`${servicio.servicio}-${servicio.nro_factura || index}`}>
-                <td>{servicio.servicio}</td>
-                <td>{servicio.estado_servicio}</td>
-                <td>
-                  {servicio.pdf ? (
-                    <span style={{ color: 'green' }}>✅</span> // Tic verde si el PDF está disponible
-                  ) : (
-                    <span style={{ color: 'red' }}>❌</span> // Cruz roja si no hay PDF
-                  )}
-                </td>
-                <td>{servicio.factura}</td>
-                <td>{servicio.estado_factura}</td>
-                <td>{servicio.pdf ? <a href={servicio.pdf} target="_blank" >📄</a> : '❌'}</td>
+        <div className='contenedor-tabla-app' style={{ maxHeight: "53vh", overflowY: "auto" }}>
+          <table className="tabla-app">
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Estado Servicio</th>
+                <th>Factura</th>
+                <th>NroFactura</th>
+                <th>Estado Factura</th>
+                <th>PDF</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredServicios.map((servicio, index) => (
+                <tr key={`${servicio.servicio}-${servicio.nro_factura || index}`}>
+                  <td>{servicio.servicio}</td>
+                  <td>{servicio.estado_servicio}</td>
+                  <td>
+                    {servicio.pdf ? (
+                      <span style={{ color: 'green' }}>✅</span> // Tic verde si el PDF está disponible
+                    ) : (
+                      <span style={{ color: 'red' }}>❌</span> // Cruz roja si no hay PDF
+                    )}
+                  </td>
+                  <td>{servicio.factura}</td>
+                  <td>{servicio.estado_factura}</td>
+                  <td>{servicio.pdf ? <a href={servicio.pdf} target="_blank" >📄</a> : '❌'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p>No se encontraron servicios asociados a esta escala.</p>
       )}
@@ -158,9 +239,22 @@ const ViewEscala = () => {
   const [error, setError] = useState(null);
   const [servicios, setServicios] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [adjuntos, setAdjuntos] = useState([]);
+
 
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
+  };
+
+  const fetchAdjuntos = async () => {
+    try {
+      const response = await axios.get(`${environment.API_URL}viewescalaarchivos/${id}`);
+      setAdjuntos(response.data);
+      console.log(response.data);
+    } catch (err) {
+      console.error('Error al obtener los adjuntos:', err);
+      setError('Error al obtener los adjuntos');
+    }
   };
 
   useEffect(() => {
@@ -173,7 +267,7 @@ const ViewEscala = () => {
         console.error('Error al obtener la escala:', err);
         setError('Error al obtener los detalles de la escala');
       }
-      
+
     };
 
     const fetchFacturas = async () => {
@@ -186,7 +280,8 @@ const ViewEscala = () => {
         setError('Error al obtener las facturas');
       }
     };
-    
+
+
 
     // Obtener los servicios y facturas
     const fetchServiciosYFacturas = async () => {
@@ -203,6 +298,7 @@ const ViewEscala = () => {
 
     fetchEscala();
     fetchFacturas();
+    fetchAdjuntos();
     fetchServiciosYFacturas();
   }, [id]);
 
@@ -215,7 +311,7 @@ const ViewEscala = () => {
       <h3 className="titulo-estandar">Detalles de la Escala {escala.buque} {escala.eta}</h3>
       <nav className="view-escala-navbar">
         <ul>
-        <li>
+          <li>
             <button
               className={activeTab === 'Liquidacion' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
               onClick={() => setActiveTab('Liquidacion')}
@@ -229,7 +325,15 @@ const ViewEscala = () => {
               onClick={() => setActiveTab('facturas')}
             >
               Facturas
+            </button></li>
+          <li>
+            <button
+              className={activeTab === 'adjuntos' ? 'view-escala-nav-button active' : 'view-escala-nav-button'}
+              onClick={() => setActiveTab('adjuntos')}
+            >
+              Adjuntos
             </button>
+
           </li>
         </ul>
       </nav>
@@ -237,7 +341,8 @@ const ViewEscala = () => {
       {/* Contenido según la pestaña seleccionada */}
       <div className="view-escala-tab-content">
         {activeTab === 'facturas' && <Facturas facturas={facturas} searchTerm={searchTerm} handleSearch={handleSearch} />}
-        {activeTab === 'Liquidacion' && <Liquidacion servicios={servicios} searchTerm={searchTerm} handleSearch={handleSearch} escala = {escala} />}
+        {activeTab === 'Liquidacion' && <Liquidacion servicios={servicios} searchTerm={searchTerm} handleSearch={handleSearch} escala={escala} />}
+        {activeTab === 'adjuntos' && <Adjuntos adjuntos={adjuntos} searchTerm={searchTerm} handleSearch={handleSearch} id={id} fetchAdjuntos={fetchAdjuntos} />}
       </div>
     </div>
   );

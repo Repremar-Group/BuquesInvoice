@@ -119,15 +119,6 @@ const ParametrosServicios = ({ isLoggedIn }) => {
                     </tbody>
                 </table>
 
-                <ReactPaginate
-                    previousLabel={"Anterior"}
-                    nextLabel={"Siguiente"}
-                    breakLabel={"..."}
-                    pageCount={pageCount}
-                    onPageChange={handlePageClick}
-                    containerClassName={"pagination"}
-                    activeClassName={"active"}
-                />
             </div>
         </div>
     );

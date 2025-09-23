@@ -108,11 +108,14 @@
 .tabla-escalas {
     font-size: 1em;
     border-collapse: collapse;
-    table-layout: fixed; /* Asegura que las columnas tengan un ancho fijo */
-    width: 100%; /* La tabla ocupará el 100% del contenedor */
+    table-layout: fixed;
+    /* Asegura que las columnas tengan un ancho fijo */
+    width: 100%;
+    /* La tabla ocupará el 100% del contenedor */
     max-height: 500px;
     overflow-y: auto;
-    display: block; /* Hace que la tabla se comporte como un bloque para aplicar scroll */
+    display: block;
+    /* Hace que la tabla se comporte como un bloque para aplicar scroll */
     border-radius: 5px;
     margin: 20px 0;
 }
@@ -130,17 +133,17 @@
 
 /* Estilo del scrollbar */
 .tabla-escalas::-webkit-scrollbar {
-    width: 10px; 
+    width: 10px;
     background-color: #f0f0f0;
     border-radius: 5px;
 }
-  
+
 .tabla-escalas::-webkit-scrollbar-thumb {
     background-color: #143361;
     border-radius: 5px;
     border: 2px solid #f0f0f0;
 }
-  
+
 .tabla-escalas::-webkit-scrollbar-thumb:hover {
     background-color: #4885e2;
 }
@@ -212,7 +215,8 @@ td:nth-child(7) {
 th {
     background-color: #f9f9f9;
 }
-.contenedor-tabla-viewescala{
+
+.contenedor-tabla-viewescala {
     width: 1500px;
 }
 
@@ -254,6 +258,7 @@ th {
     justify-content: center;
     align-items: center;
 }
+
 .modal-overlay-spinner {
     position: fixed;
     top: 0;
@@ -311,51 +316,84 @@ th {
 
 /* Estilo de la barra de desplazamiento /*/
 .tabla-parametros::-webkit-scrollbar {
-    width: 8px; /* Ancho de la barra de desplazamiento */
-    background-color: #f0f0f0; /* Color de fondo de la barra */
+    width: 8px;
+    /* Ancho de la barra de desplazamiento */
+    background-color: #f0f0f0;
+    /* Color de fondo de la barra */
     border-radius: 5px;
 }
 
 /* Estilo del "thumb" de la scrollbar (la parte que se mueve) */
 .tabla-parametros::-webkit-scrollbar-thumb {
-    background-color: #143361; /* Color del thumb */
-    border-radius: 5px; /* Bordes redondeados */
-    border: 2px solid #f0f0f0; /* Espacio entre el thumb y la barra */
+    background-color: #143361;
+    /* Color del thumb */
+    border-radius: 5px;
+    /* Bordes redondeados */
+    border: 2px solid #f0f0f0;
+    /* Espacio entre el thumb y la barra */
 }
 
 /* Estilo del thumb al pasar el mouse (hover) */
 .tabla-parametros::-webkit-scrollbar-thumb:hover {
-    background-color: #555; /* Cambia el color del thumb al pasar el mouse*/
+    background-color: #555;
+    /* Cambia el color del thumb al pasar el mouse*/
 }
 
 .loading-spinner {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh; /* Altura completa de la pantalla */
+    height: 100vh;
+    /* Altura completa de la pantalla */
     font-size: 1.5rem;
-  }
-  
-  .loading-spinner::after {
+}
+
+.loading-spinner::after {
     content: "";
     width: 50px;
     height: 50px;
     border: 5px solid transparent;
-    border-top: 5px solid #143361; /* Color del spinner */
+    border-top: 5px solid #143361;
+    /* Color del spinner */
     border-radius: 50%;
     animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
+}
+
+@keyframes spin {
     from {
-      transform: rotate(0deg);
+        transform: rotate(0deg);
     }
+
     to {
-      transform: rotate(360deg);
+        transform: rotate(360deg);
     }
-  }
-  .disabled-row {
-  background-color: #f0f0f0; /* Gris claro */
-  color: #d11919; /* Texto gris */
-  pointer-events: none; /* Opcional: deshabilitar interacciones */
+}
+
+.disabled-row {
+    background-color: #f0f0f0;
+    /* Gris claro */
+    color: #d11919;
+    /* Texto gris */
+    pointer-events: none;
+    /* Opcional: deshabilitar interacciones */
+}
+
+.modal-overlay.active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-container.active {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 300px;
 }
