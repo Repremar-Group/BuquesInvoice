@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import Layout from './componentes/layout/Layout';
-import './App.css';
+import './app.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 
