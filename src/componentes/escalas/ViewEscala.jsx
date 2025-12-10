@@ -6,7 +6,7 @@ import axios from 'axios';
 import './previewescalas.css';
 import { environment } from '../../environment';
 import EscalaAdjuntos from './EscalaAdjuntos';
-import '../../app.css';
+import '../../App.css';
 
 
 // Componente para mostrar detalles generales de la escala

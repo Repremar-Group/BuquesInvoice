@@ -7,7 +7,7 @@ import ModificarFactura from './ModificarFactura';
 import { toast, ToastContainer } from 'react-toastify';
 import { environment } from '../../environment';
 import 'react-toastify/dist/ReactToastify.css';
-import '../../app.css';
+import '../../App.css';
 
 const PreviewEscalas = () => {
   const [searchTerm, setSearchTerm] = useState('');

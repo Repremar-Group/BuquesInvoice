@@ -3,7 +3,7 @@ import axios from 'axios';
 import ReactPaginate from 'react-paginate';
 import './previewescalas.css';
 import { environment } from '../../environment';
-import '../../app.css';
+import '../../App.css';
 
 const EscalaListaServicios = ({ id, closeModal }) => {
 
