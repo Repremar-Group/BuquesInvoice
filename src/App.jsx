@@ -1,32 +1,38 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, BrowserRouter } from 'react-router-dom';
-import Layout from './componentes/layout/Layout'
-import './app.css'
+import { useState, useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import Layout from './componentes/layout/Layout';
+import './app.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 
 function App() {
-  const [count, setCount] = useState(0)
   // Recuperar el estado de autenticación desde localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem('isLoggedIn') === 'true' // Convierte la cadena "true" a booleano
+    localStorage.getItem('isLoggedIn') === 'true'
   );
 
-  // Guardar el estado de autenticación en localStorage cada vez que cambie
+  // Cada vez que cambie el estado de login, lo guardamos
   useEffect(() => {
     localStorage.setItem('isLoggedIn', isLoggedIn);
   }, [isLoggedIn]);
 
-  // Función para manejar el login exitoso
+  // Cuando el login es exitoso
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
 
+  // Si quisieras manejar logout más adelante:
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.clear(); // borra token, usuario, etc.
+  };
+
   return (
     <BrowserRouter>
-      <Layout isLoggedIn={isLoggedIn} handleLogin={handleLogin} />
+      <Layout isLoggedIn={isLoggedIn} handleLogin={handleLogin} handleLogout={handleLogout} />
+      <ToastContainer />
     </BrowserRouter>
   );
 }
 
-export default App
+export default App;

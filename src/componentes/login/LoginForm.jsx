@@ -4,85 +4,83 @@ import logo from './LogoRepremar.png';
 import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { environment } from '../../environment';
 
 const LoginForm = ({ onLoginSuccess }) => {
-    const [usuario, setUsuario] = useState("");
-    const [contraseña, setContraseña] = useState("");
-    const navigate = useNavigate();
+  const [usuario, setUsuario] = useState("");
+  const [contraseña, setContraseña] = useState("");
+  const navigate = useNavigate();
 
-    // Array de usuarios válidos
-    const usuariosValidos = [
-        { usuario: "admin", contraseña: "admin" },
-        { usuario: "jpgomez", contraseña: "juan", idoperador: 65 },
-        { usuario: "gdelossantos", contraseña: "gd3lossant0s41372", idoperador: 4 },
-        { usuario: "rbalbuena", contraseña: "rb4lbuen41372", idoperador: 73 },
-        { usuario: "lpatetta", contraseña: "lp4tet41372", idoperador: 74 },
-        { usuario: "tloustalet", contraseña: "tl0ust4let1372", idoperador: 67 },
-        { usuario: "idossantos", contraseña: "id0sant0s1372", idoperador: 66 },
-        { usuario: "dremigio", contraseña: "dr3mig1o1372", rol:'contable'},
-        { usuario: "pporra", contraseña: "paola", rol:'contable' },
-        { usuario: "jchaud", contraseña: "jeanette", rol:'liquidacion' },
-        { usuario: "sdacosta", contraseña: "sd4cost41372", rol:'contable' },
-        { usuario: "mjvega", contraseña: "mjv3g41372", rol:'liquidacion' },
-        { usuario: "mberdou", contraseña: "m3rc3d3s", rol:'liquidacion' }
-    ];
-    // Manejar el evento de submit
-    const handleSubmit = (e) => {
-        e.preventDefault(); // Evita la recarga de la página
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        // Verificar si el usuario existe en el array
-        const usuarioEncontrado = usuariosValidos.find(
-            (u) => u.usuario === usuario && u.contraseña === contraseña
-        );
+    try {
+      // 👇 usamos la URL desde environment, igual que en otros fetch
+      const response = await fetch(`${environment.API_URL}auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, password: contraseña }),
+      });
 
-        if (usuarioEncontrado) {
-            // Solo almacenar idOperador si existe en el objeto del usuario
-            if (usuarioEncontrado.idoperador) {
-                localStorage.setItem('idOperador', usuarioEncontrado.idoperador);
-            }
-            if (usuarioEncontrado.rol) {
-                localStorage.setItem('rol', usuarioEncontrado.rol);
-            }
-            // Almacenar el usuario en todos los casos
-            localStorage.setItem('usuario', usuarioEncontrado.usuario)
-            onLoginSuccess();
-            navigate('/home');
-        } else {
-            toast.error("Usuario o contraseña incorrectos");
-        }
-    };
+      const data = await response.json();
 
-    return (
-        <div className='Login'>
-            <form className='formularioschicos' onSubmit={handleSubmit}>
-                <img src={logo} alt="Logo Cielosur" />
-                <div><br /></div>
-                <div className='input-box'>
-                    <input
-                        type="text"
-                        placeholder='Usuario'
-                        onChange={e => setUsuario(e.target.value)}
-                        value={usuario}
-                        required
-                    />
-                </div>
+      if (!response.ok) {
+        toast.error(data.message || 'Usuario o contraseña incorrectos');
+        return;
+      }
 
-                <div className='input-box'>
-                    <input
-                        type="password"
-                        placeholder='Contraseña'
-                        onChange={e => setContraseña(e.target.value)}
-                        value={contraseña}
-                        required
-                    />
-                </div>
+      // 💾 Guardar datos del usuario en localStorage
+      if (data.user) {
+        localStorage.setItem('usuario', data.user.usuario);
+        if (data.user.idoperador) localStorage.setItem('idOperador', data.user.idoperador);
+        if (data.user.rol) localStorage.setItem('rol', data.user.rol);
+      }
 
-                <button type="submit" className="btn-estandar">Ingresar</button>
-            </form>
-            <ToastContainer
-        />
+      // ✅ Si el backend devuelve un token, lo guardás también
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      toast.success('Inicio de sesión exitoso');
+      onLoginSuccess();
+      navigate('/home');
+    } catch (error) {
+      console.error('Error al conectar con el servidor:', error);
+      toast.error('Error de conexión con el servidor');
+    }
+  };
+
+  return (
+    <div className='Login'>
+      <form className='formularioschicos' onSubmit={handleSubmit}>
+        <img src={logo} alt="Logo Cielosur" />
+        <div><br /></div>
+
+        <div className='input-box'>
+          <input
+            type="text"
+            placeholder='Usuario'
+            onChange={e => setUsuario(e.target.value)}
+            value={usuario}
+            required
+          />
         </div>
-    );
+
+        <div className='input-box'>
+          <input
+            type="password"
+            placeholder='Contraseña'
+            onChange={e => setContraseña(e.target.value)}
+            value={contraseña}
+            required
+          />
+        </div>
+
+        <button type="submit" className="btn-estandar">Ingresar</button>
+      </form>
+      <ToastContainer />
+    </div>
+  );
 }
 
 export default LoginForm;

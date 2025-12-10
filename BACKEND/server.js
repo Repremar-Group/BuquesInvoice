@@ -7,6 +7,7 @@ const cors = require('cors');
 const mysql = require('mysql');
 const mysql2 = require('mysql2/promise');
 const Busboy = require('busboy');
+const argon2 = require('argon2');
 
 const multer = require('multer'); // Middleware para manejar la carga de archivos
 const { BlobServiceClient } = require('@azure/storage-blob');
@@ -28,7 +29,7 @@ const poolBuquesInvoice = mysql2.createPool({
   host: 'itinerarios.mysql.database.azure.com',
   user: 'itinerariosdba',
   password: '!Masterkey_22',
-  database: 'buquesinvoice',
+  database: 'buquesinvoicedev',
   port: 3306,
   waitForConnections: true,
   connectionLimit: 20, // Número máximo de conexiones en el pool
@@ -93,6 +94,53 @@ const AZURE_STORAGE_CONNECTION_STRING = 'DefaultEndpointsProtocol=https;AccountN
 const containerFacturaClient = blobServiceClient.getContainerClient('facturas');
 const containerNCClient = blobServiceClient.getContainerClient('nc');*/
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Login de usuario (verifica hash con argon2)
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { usuario, password } = req.body;
+
+    // 🧩 Validación básica
+    if (!usuario?.trim() || !password?.trim()) {
+      return res.status(400).json({ success: false, message: 'Faltan datos' });
+    }
+
+    // 🔎 Buscar usuario
+    const [rows] = await poolBuquesInvoice.query(
+      'SELECT usuario, password_hash, idoperador, rol FROM users WHERE usuario = ? LIMIT 1',
+      [usuario]
+    );
+
+    if (rows.length === 0) {
+      // No decimos si el error fue usuario o pass — por seguridad
+      return res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
+    }
+
+    const user = rows[0];
+
+    // 🔐 Verificar hash
+    const validPassword = await argon2.verify(user.password_hash, password);
+
+    if (!validPassword) {
+      return res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
+    }
+
+    // 💬 Si todo ok, devolvés los datos que precise el frontend
+    res.json({
+      success: true,
+      user: {
+        usuario: user.usuario,
+        idoperador: user.idoperador || null,
+        rol: user.rol || null,
+      },
+    });
+
+  } catch (err) {
+    console.error('💥 Error al hacer login:', err);
+    res.status(500).json({ success: false, message: 'Error en el servidor' });
+  }
+});
+
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 //Endpoint para obtener una sola factura.
@@ -337,7 +385,7 @@ LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
 LEFT JOIN buques ON itinerarios.id_buque = buques.id
 LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
 LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-JOIN buquesinvoice.parametros p ON p.idparametros = 1
+JOIN buquesinvoicedev.parametros p ON p.idparametros = 1
     WHERE itinerarios.eta BETWEEN
       STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
       AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
@@ -382,7 +430,7 @@ app.get('/api/previewescalas', async (req, res) => {
     LEFT JOIN buques ON itinerarios.id_buque = buques.id
     LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
     LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-    JOIN buquesinvoice.parametros p ON p.idparametros = 1
+    JOIN buquesinvoicedev.parametros p ON p.idparametros = 1
     WHERE itinerarios.eta BETWEEN
       STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
       AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
@@ -470,8 +518,8 @@ app.post('/api/Agregarfactura', async (req, res) => {
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
 
-app.listen(5001, () => {
-  console.log('Servidor corriendo en el puerto 5001');
+app.listen(5000, () => {
+  console.log('Servidor corriendo en el puerto 5000');
 });
 
 // Endpoint para obtener las facturas y sus URLs
@@ -502,7 +550,7 @@ app.get('/api/obtenerfacturas', async (req, res) => {
       b.nombre AS buque,
       p.nombre AS puerto,
       o.nombre AS operador
-    FROM buquesinvoice.facturas f
+    FROM buquesinvoicedev.facturas f
     LEFT JOIN itinerarios_prod.itinerarios e ON f.escala_asociada = e.id
     LEFT JOIN itinerarios_prod.lineas l ON e.id_linea = l.id
     LEFT JOIN itinerarios_prod.buques b ON e.id_buque = b.id
@@ -1766,9 +1814,9 @@ LEFT JOIN itinerarios_prod.lineas ON itinerarios_prod.itinerarios.id_linea = iti
 LEFT JOIN itinerarios_prod.buques ON itinerarios_prod.itinerarios.id_buque = itinerarios_prod.buques.id
 LEFT JOIN itinerarios_prod.puertos ON itinerarios_prod.itinerarios.id_puerto = itinerarios_prod.puertos.id
 LEFT JOIN itinerarios_prod.operadores ON itinerarios_prod.itinerarios.id_operador1 = itinerarios_prod.operadores.id
-LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
+LEFT JOIN buquesinvoicedev.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
   AND buquesinvoice.facturas.estado = 'Pendiente'
-LEFT JOIN buquesinvoice.escalasurgentes ON itinerarios_prod.itinerarios.id = buquesinvoice.escalasurgentes.idescala
+LEFT JOIN buquesinvoicedev.escalasurgentes ON itinerarios_prod.itinerarios.id = buquesinvoice.escalasurgentes.idescala
 WHERE itinerarios_prod.itinerarios.id_operador1 = ?
   AND itinerarios_prod.itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
 GROUP BY itinerarios_prod.itinerarios.id
@@ -1889,12 +1937,12 @@ FROM
   buquesinvoice.serviciosescalas se
 JOIN itinerarios_prod.itinerarios i ON i.id = se.idescala  -- Relación entre serviciosescalas e itinerarios
 JOIN itinerarios_prod.buques b ON b.id = i.id_buque  -- Relación entre itinerarios y buques
-LEFT JOIN buquesinvoice.serviciosfacturas sf ON sf.idfactura IN (
+LEFT JOIN buquesinvoicedev.serviciosfacturas sf ON sf.idfactura IN (
   SELECT idfacturas 
-  FROM buquesinvoice.facturas f 
+  FROM buquesinvoicedev.facturas f 
   WHERE f.estado = 'Aprobado' AND f.escala_asociada = se.idescala
 )
-LEFT JOIN buquesinvoice.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
+LEFT JOIN buquesinvoicedev.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
 WHERE i.eta >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)  -- Filtro para escalas con eta máximo un año de antigüedad
 GROUP BY se.idescala, b.nombre, i.eta;
   `;
