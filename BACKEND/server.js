@@ -29,7 +29,7 @@ const poolBuquesInvoice = mysql2.createPool({
   host: 'itinerarios.mysql.database.azure.com',
   user: 'itinerariosdba',
   password: '!Masterkey_22',
-  database: 'buquesinvoicedev',
+  database: 'buquesinvoice',
   port: 3306,
   waitForConnections: true,
   connectionLimit: 20, // Número máximo de conexiones en el pool
@@ -385,7 +385,7 @@ LEFT JOIN lineas ON itinerarios.id_linea = lineas.id
 LEFT JOIN buques ON itinerarios.id_buque = buques.id
 LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
 LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-JOIN buquesinvoicedev.parametros p ON p.idparametros = 1
+JOIN buquesinvoice.parametros p ON p.idparametros = 1
     WHERE itinerarios.eta BETWEEN
       STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
       AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
@@ -430,7 +430,7 @@ app.get('/api/previewescalas', async (req, res) => {
     LEFT JOIN buques ON itinerarios.id_buque = buques.id
     LEFT JOIN puertos ON itinerarios.id_puerto = puertos.id
     LEFT JOIN operadores ON itinerarios.id_operador1 = operadores.id
-    JOIN buquesinvoicedev.parametros p ON p.idparametros = 1
+    JOIN buquesinvoice.parametros p ON p.idparametros = 1
     WHERE itinerarios.eta BETWEEN
       STR_TO_DATE(CONCAT(p.fecha_temporada - 1, '-10-01'), '%Y-%m-%d')
       AND STR_TO_DATE(CONCAT(p.fecha_temporada, '-04-30'), '%Y-%m-%d')
@@ -518,10 +518,10 @@ app.post('/api/Agregarfactura', async (req, res) => {
   }, 1000);  // Esperamos un poco para asegurarnos de que los archivos han sido movidos
 });
 
-app.listen(5000, () => {
-  console.log('Servidor corriendo en el puerto 5000');
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
-
 // Endpoint para obtener las facturas y sus URLs
 app.get('/api/obtenerfacturas', async (req, res) => {
   const idOperador = req.query.id_operador; // Recibimos el id del operador
@@ -550,7 +550,7 @@ app.get('/api/obtenerfacturas', async (req, res) => {
       b.nombre AS buque,
       p.nombre AS puerto,
       o.nombre AS operador
-    FROM buquesinvoicedev.facturas f
+    FROM buquesinvoice.facturas f
     LEFT JOIN itinerarios_prod.itinerarios e ON f.escala_asociada = e.id
     LEFT JOIN itinerarios_prod.lineas l ON e.id_linea = l.id
     LEFT JOIN itinerarios_prod.buques b ON e.id_buque = b.id
@@ -1814,9 +1814,9 @@ LEFT JOIN itinerarios_prod.lineas ON itinerarios_prod.itinerarios.id_linea = iti
 LEFT JOIN itinerarios_prod.buques ON itinerarios_prod.itinerarios.id_buque = itinerarios_prod.buques.id
 LEFT JOIN itinerarios_prod.puertos ON itinerarios_prod.itinerarios.id_puerto = itinerarios_prod.puertos.id
 LEFT JOIN itinerarios_prod.operadores ON itinerarios_prod.itinerarios.id_operador1 = itinerarios_prod.operadores.id
-LEFT JOIN buquesinvoicedev.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
+LEFT JOIN buquesinvoice.facturas ON itinerarios_prod.itinerarios.id = buquesinvoice.facturas.escala_asociada 
   AND buquesinvoice.facturas.estado = 'Pendiente'
-LEFT JOIN buquesinvoicedev.escalasurgentes ON itinerarios_prod.itinerarios.id = buquesinvoice.escalasurgentes.idescala
+LEFT JOIN buquesinvoice.escalasurgentes ON itinerarios_prod.itinerarios.id = buquesinvoice.escalasurgentes.idescala
 WHERE itinerarios_prod.itinerarios.id_operador1 = ?
   AND itinerarios_prod.itinerarios.eta <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
 GROUP BY itinerarios_prod.itinerarios.id
@@ -1937,12 +1937,12 @@ FROM
   buquesinvoice.serviciosescalas se
 JOIN itinerarios_prod.itinerarios i ON i.id = se.idescala  -- Relación entre serviciosescalas e itinerarios
 JOIN itinerarios_prod.buques b ON b.id = i.id_buque  -- Relación entre itinerarios y buques
-LEFT JOIN buquesinvoicedev.serviciosfacturas sf ON sf.idfactura IN (
+LEFT JOIN buquesinvoice.serviciosfacturas sf ON sf.idfactura IN (
   SELECT idfacturas 
-  FROM buquesinvoicedev.facturas f 
+  FROM buquesinvoice.facturas f 
   WHERE f.estado = 'Aprobado' AND f.escala_asociada = se.idescala
 )
-LEFT JOIN buquesinvoicedev.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
+LEFT JOIN buquesinvoice.escalasurgentes es ON es.idescala = se.idescala -- Unión con escalasurgentes
 WHERE i.eta >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)  -- Filtro para escalas con eta máximo un año de antigüedad
 GROUP BY se.idescala, b.nombre, i.eta;
   `;
